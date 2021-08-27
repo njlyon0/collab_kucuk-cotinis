@@ -1,6 +1,6 @@
-## ---------------------------------------------------------------------------------- ##
-                  # Kucuk Cotinis Project - Visualization Code
-## ---------------------------------------------------------------------------------- ##
+## -------------------------------------------------------------- ##
+           # Kucuk Cotinis Project - Visualization Code
+## -------------------------------------------------------------- ##
 # Code written by Nicholas J Lyon
 
 # PURPOSE:
@@ -10,7 +10,8 @@
 rm(list = ls())
 
 # Set working directory
-setwd("~/Documents/_Publications/2022_Kucuk_Cotinis/Kucuk-CotinisCollab")
+getwd() # should end in ".../Kucuk-CotinisCollab"
+myWD <- getwd()
 
 # Necessary libraries
 library(tidyverse); library(vegan); library(ape); library(Rmisc)
@@ -18,80 +19,35 @@ library(tidyverse); library(vegan); library(ape); library(Rmisc)
 ## -------------------------------------------- ##
       # Data Retrieval & Housekeeping ####
 ## -------------------------------------------- ##
-
-
-vegdist(bz.patch.rsp, method = "jaccard")
-
 # Retrieve the relevant datasets
-bc.data <- read.csv("./Data/Beta Diversity/bc-data.csv")
-jacc.data <- read.csv("./Data/Beta Diversity/jacc-data.csv")
-uwt.frc.data <- read.csv("./Data/Beta Diversity/unwtd-unfrc-data.csv")
-wtd.frc.data <- read.csv("./Data/Beta Diversity/wtd-unfrc-data.csv")
-alpha <- read.csv("./Data/Alpha Diversity/dive-data.csv")
+alpha <- read.csv("./Data/alpha-diversity-data.csv")
+beta <- read.csv("./Data/beta-diversity-data.csv")
+wtd.frc.dist <- read.csv("./Data/wtd-unfrc-dist.csv")[-1]
+uwt.frc.dist <- read.csv("./Data/unwtd-unfrc-dist.csv")[-1]
 
 # Look at them to be sure nothing obvious is wrong
-str(bc.data)
-str(jacc.data)
-str(uwt.frc.data)
-str(wtd.frc.data)
 str(alpha)
+str(beta)
+str(wtd.frc.dist)
 
-# The nature of distance *matrices* makes saving them then re-loading them a pain
-  ## So, we will quickly load and fix the raw distance matrices for both metrics (BC & Jaccard)
-
-# Bray Curtis dissimilarity matrix
-  ## Load qza file
-bc.qza <- read_qza("./Data/diversity6/bray_curtis_distance_matrix.qza")
-  ## Get just the part of that we want
-bc.dist.v0 <- as.matrix(bc.qza$data)
-  ## Remove comparisons to unfed individuals (pilot study that is irrelevant here)
-bc.dist <- bc.dist.v0[-c(33:36), -c(33:36)]
-
-# Jaccard distance matrix
-jacc.qza <- read_qza("./Data/diversity6/jaccard_distance_matrix.qza")
-jacc.dist.v0 <- as.matrix(jacc.qza$data)
-jacc.dist <- jacc.dist.v0[-c(33:36), -c(33:36)]
-
-# Weighted & Unweighted Unifrac distance matrices
-wtd.frc.qza <- read_qza("./Data/diversity6/weighted_unifrac_distance_matrix.qza")
-uwt.frc.qza <- read_qza("./Data/diversity6/unweighted_unifrac_distance_matrix.qza")
-wtd.frc.v0 <- as.matrix(wtd.frc.qza$data)
-uwt.frc.v0 <- as.matrix(uwt.frc.qza$data)
-wtd.frc.dist <- wtd.frc.v0[-c(33:36), -c(33:36)]
-uwt.frc.dist <- uwt.frc.v0[-c(33:36), -c(33:36)]
+# Calculate the Bray Curtis and Jaccard distances
+bc.dist <- vegdist(beta[-c(1:5)], method = 'bray')
+jac.dist <- vegdist(beta[-c(1:5)], method = 'jaccard')
 
 # We also want to order the factor levels of what we're using as groups for PCoAs
-  ## Bray Curtis
-unique(bc.data$Stage.n.Gut)
-bc.data$Stage.n.Gut <- factor(bc.data$Stage.n.Gut, 
+unique(beta$Stage.Gut)
+beta$Stage.Gut <- factor(beta$Stage.Gut, 
                               levels = c("Larval paunch", "Larval ileum", "Larval midgut",
                                          "Adult midgut", "Adult hindgut"))
-unique(bc.data$Stage.n.Gut)
+unique(beta$Stage.Gut)
 
-  ## Jaccard
-unique(jacc.data$Stage.n.Gut)
-jacc.data$Stage.n.Gut <- factor(jacc.data$Stage.n.Gut, 
-                              levels = c("Larval paunch", "Larval ileum", "Larval midgut",
-                                         "Adult midgut", "Adult hindgut"))
-unique(jacc.data$Stage.n.Gut)
-
-  ## Unweighted Unifrac
-unique(uwt.frc.data$Stage.n.Gut)
-uwt.frc.data$Stage.n.Gut <- factor(uwt.frc.data$Stage.n.Gut, 
-                                levels = c("Larval paunch", "Larval ileum", "Larval midgut",
-                                           "Adult midgut", "Adult hindgut"))
-unique(uwt.frc.data$Stage.n.Gut)
-
-  ## Weighted Unifrac
-unique(wtd.frc.data$Stage.n.Gut)
-wtd.frc.data$Stage.n.Gut <- factor(wtd.frc.data$Stage.n.Gut, 
-                               levels = c("Larval paunch", "Larval ileum", "Larval midgut",
-                                          "Adult midgut", "Adult hindgut"))
-unique(wtd.frc.data$Stage.n.Gut)
-
+# Strip out the ID missing from the unifrac data
+frc.data <- beta %>%
+  filter(Sample.ID != "Amid48") %>%
+  as.data.frame()
 
 # Roy (Kucuk) also wants some plots/ordinations that include larvae only
-alpha.larv <- filter(alpha, Life.Stage == "larva")
+alpha.larv <- filter(alpha, Lifestage == "larva")
 
 # Retrieve my custom Principal Coordinates Analysis (PCoA) ordination function
 pcoa.5.ord <- function(mod, groupcol, g1, g2, g3, g4, g5,
@@ -162,12 +118,12 @@ pref_theme <- theme_classic() +
 
 # Run a PCoA on all distance matrices
 bc.pnts <- ape::pcoa(bc.dist)
-jacc.pnts <- ape::pcoa(jacc.dist)
+jacc.pnts <- ape::pcoa(jac.dist)
 wtd.frc.pnts <- ape::pcoa(wtd.frc.dist)
 uwt.frc.pnts <- ape::pcoa(uwt.frc.dist)
 
 # Now make the ordination so that you can look at it (i.e., so that it prints to the viewer in R)
-pcoa.5.ord(mod = bc.pnts, groupcol = bc.data$Stage.n.Gut,
+pcoa.5.ord(mod = bc.pnts, groupcol = beta$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
            legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
@@ -175,7 +131,7 @@ pcoa.5.ord(mod = bc.pnts, groupcol = bc.data$Stage.n.Gut,
 
 # Once that looks good save it out using this dev.off bit
 jpeg(file = "./Graphs/PCoA-bray-curtis.jpg")
-pcoa.5.ord(mod = bc.pnts, groupcol = bc.data$Stage.n.Gut,
+pcoa.5.ord(mod = bc.pnts, groupcol = beta$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
            legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
@@ -183,7 +139,7 @@ pcoa.5.ord(mod = bc.pnts, groupcol = bc.data$Stage.n.Gut,
 dev.off()
 
 # Now make the Jaccard PCoA
-pcoa.5.ord(mod = jacc.pnts, groupcol = jacc.data$Stage.n.Gut,
+pcoa.5.ord(mod = jacc.pnts, groupcol = beta$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
            legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
@@ -191,7 +147,7 @@ pcoa.5.ord(mod = jacc.pnts, groupcol = jacc.data$Stage.n.Gut,
 
 # Once that looks good save it out using this dev.off bit
 jpeg(file = "./Graphs/PCoA-jaccard.jpg")
-pcoa.5.ord(mod = jacc.pnts, groupcol = jacc.data$Stage.n.Gut,
+pcoa.5.ord(mod = jacc.pnts, groupcol = beta$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
            legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
@@ -199,7 +155,7 @@ pcoa.5.ord(mod = jacc.pnts, groupcol = jacc.data$Stage.n.Gut,
 dev.off()
 
 # Now make the Weighted Unifrac PCoA
-pcoa.5.ord(mod = wtd.frc.pnts, groupcol = wtd.frc.data$Stage.n.Gut,
+pcoa.5.ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
            legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
@@ -207,16 +163,15 @@ pcoa.5.ord(mod = wtd.frc.pnts, groupcol = wtd.frc.data$Stage.n.Gut,
 
 # Save the ordination
 jpeg(file = "./Graphs/PCoA-weighted-unifrac.jpg")
-pcoa.5.ord(mod = wtd.frc.pnts, groupcol = wtd.frc.data$Stage.n.Gut,
+pcoa.5.ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
            legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
            legpos = "bottomright")
-
 dev.off()
 
 # Finally, do the Unweighted Unifrac PCoA
-pcoa.5.ord(mod = uwt.frc.pnts, groupcol = uwt.frc.data$Stage.n.Gut,
+pcoa.5.ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
            legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
@@ -224,43 +179,12 @@ pcoa.5.ord(mod = uwt.frc.pnts, groupcol = uwt.frc.data$Stage.n.Gut,
 
 # Save the ordination
 jpeg(file = "./Graphs/PCoA-unweighted-unifrac.jpg")
-pcoa.5.ord(mod = uwt.frc.pnts, groupcol = uwt.frc.data$Stage.n.Gut,
+pcoa.5.ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
            legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
            legpos = "topleft")
-
 dev.off()
-
-## -------------------------------------------- ##
-       # Alpha Diversity Scatterplots ####
-## -------------------------------------------- ##
-# Incl. Chao, ACE, Simpson, and Shannon diversity & Pielou's Evenness
-  ## (Diversity ~ Life Stage + Gut Section, data = all)
-
-# Shannon diversity
-  ## Plot
-ggplot(alpha, aes(y = shannon, x = Stage.n.Gut, fill = Stage.n.Gut)) +
-  geom_jitter(pch = 24, size = 2.5, width = 0.2) +
-  scale_fill_manual(values = all.cols) +
-  labs(x = "Life Stage & Gut Region", y = "Shannon Diversity") +
-  pref_theme +
-  theme(legend.position = c(0.85, 0.2))
-
-  ## Save plot
-ggsave(plot = last_plot(), "./Graphs/scatter-shannon.pdf", width = 5, height = 5, units = 'in')
-
-# Pielou's Evenness
-  ## Plot
-ggplot(alpha, aes(y = pielou_e, x = Stage.n.Gut, fill = Stage.n.Gut)) +
-  geom_jitter(pch = 24, size = 2.5, width = 0.2) +
-  scale_fill_manual(values = all.cols) +
-  labs(x = "Life Stage & Gut Region", y = "Pielou's Evenness") +
-  pref_theme +
-  theme(legend.position = c(0.85, 0.2))
-
-  ## Save plot
-ggsave(plot = last_plot(), "./Graphs/scatter-pielou.pdf", width = 5, height = 5, units = 'in')
 
 ## -------------------------------------------- ##
         # Alpha Diversity Bar Graphs ####
@@ -269,41 +193,82 @@ ggsave(plot = last_plot(), "./Graphs/scatter-pielou.pdf", width = 5, height = 5,
   ## (Diversity ~ Life Stage + Gut Section, data = all)
 
 # Summarize each of the response variables
-shan <- summarySE(data = alpha, measurevar = "shannon", groupvars = c("Stage.n.Gut"))
-piel <- summarySE(data = alpha, measurevar = "pielou_e", groupvars = c("Stage.n.Gut"))
+shan <- summarySE(data = alpha, measurevar = "Shannon", groupvars = c("Stage.Gut"))
+piel <- summarySE(data = alpha, measurevar = "Pielous", groupvars = c("Stage.Gut"))
+simp <- summarySE(data = alpha, measurevar = "Simpson", groupvars = c("Stage.Gut"))
+ace <- summarySE(data = alpha, measurevar = "ACE", groupvars = c("Stage.Gut"))
+chao <- summarySE(data = alpha, measurevar = "Chao1", groupvars = c("Stage.Gut"))
+
+# Re-level the factor column
+  ## Pref factor order
+stage.gut.lvls <- c("Adult hindgut", "Adult midgut", "Larval midgut",
+                    "Larval ileum", "Larval paunch")
+  ## Actual re-leveling
+shan$Stage.Gut <- factor(shan$Stage.Gut, levels = stage.gut.lvls)
+piel$Stage.Gut <- factor(piel$Stage.Gut, levels = stage.gut.lvls)
+simp$Stage.Gut <- factor(simp$Stage.Gut, levels = stage.gut.lvls)
+chao$Stage.Gut <- factor(chao$Stage.Gut, levels = stage.gut.lvls)
+ace$Stage.Gut <- factor(ace$Stage.Gut, levels = stage.gut.lvls)
 
 # Shannon diversity bar graph
-ggplot(shan, aes(y = shannon, x = Stage.n.Gut,
-                fill = Stage.n.Gut, color = rep('dummy', nrow(shan)))) +
+ggplot(shan, aes(y = Shannon, x = Stage.Gut,
+                fill = Stage.Gut, color = rep('dummy', 5))) +
   geom_bar(stat = 'identity') +
-  geom_errorbar(aes(ymax = shannon + se, ymin = shannon - se), width = 0.2) +
+  geom_errorbar(aes(ymax = Shannon + se, ymin = Shannon - se), width = 0.2) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "Shannon Diversity") +
   pref_theme + theme(legend.position = 'none')
-ggsave(plot = last_plot(), "./Graphs/bar-shannon.pdf", width = 5, height = 5, units = 'in')
+ggsave(plot = last_plot(), "./Graphs/bar-shannon.pdf",
+       width = 5, height = 5, units = 'in')
 
 # Pielou's evenness bar graph
-ggplot(piel, aes(y = pielou_e, x = Stage.n.Gut,
-                 fill = Stage.n.Gut, color = rep('dummy', nrow(piel)))) +
+ggplot(piel, aes(y = Pielous, x = Stage.Gut,
+                 fill = Stage.Gut, color = rep('dummy', 5))) +
   geom_bar(stat = 'identity') +
-  geom_errorbar(aes(ymax = pielou_e + se, ymin = pielou_e - se), width = 0.2) +
+  geom_errorbar(aes(ymax = Pielous + se, ymin = Pielous - se), width = 0.2) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "Pielou's Evenness") +
   pref_theme + theme(legend.position = 'none')
-ggsave(plot = last_plot(), "./Graphs/bar-pielou.pdf", width = 5, height = 5, units = 'in')
-  
+ggsave(plot = last_plot(), "./Graphs/bar-pielou.pdf",
+       width = 5, height = 5, units = 'in')
 
-## -------------------------------------------- ##
- # Larval Sex Ordinations & Bar/Scatterplots ####
-## -------------------------------------------- ##
-# Same as above beta/alpha tests but subsetted for only larvae and incl. sex as explanatory variable
-  ## Diversity ~ Life Stage + Gut Section + Sex, data = larvae
+# Simpson Diversity
+ggplot(simp, aes(y = Simpson, x = Stage.Gut,
+                 fill = Stage.Gut, color = rep('dummy', 5))) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Simpson + se, ymin = Simpson - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  labs(x = "Life Stage & Gut Region", y = "Simpson Diversity") +
+  pref_theme + theme(legend.position = 'none')
+ggsave(plot = last_plot(), "./Graphs/bar-simpson.pdf",
+       width = 5, height = 5, units = 'in')
 
-# Issue here:
-  ## Larvae don't have an identified sex in the metadata
-  ## So I can't make these plots...
+# ACE Diversity
+ggplot(ace, aes(y = ACE, x = Stage.Gut, fill = Stage.Gut,
+                color = rep('dummy', 5))) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = ACE + se, ymin = ACE - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  labs(x = "Life Stage & Gut Region", y = "ACE") +
+  pref_theme + theme(legend.position = 'none')
+ggsave(plot = last_plot(), "./Graphs/bar-ace.pdf",
+       width = 5, height = 5, units = 'in')
 
-#END ####
+# Chao 1 Diversity
+ggplot(chao, aes(y = Chao1, x = Stage.Gut, fill = Stage.Gut,
+                color = rep('dummy', 5))) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Chao1 + se, ymin = Chao1 - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  labs(x = "Life Stage & Gut Region", y = "Chao1 Index") +
+  pref_theme + theme(legend.position = 'none')
+ggsave(plot = last_plot(), "./Graphs/bar-chao.pdf",
+       width = 5, height = 5, units = 'in')
+
+# END ####
 
