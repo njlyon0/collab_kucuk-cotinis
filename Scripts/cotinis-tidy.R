@@ -113,7 +113,7 @@ names(tax.data.v2)
 # Need to fix that
 tax.data.v3 <- tax.data.v2 %>%
   # Rename the first version of the Taxon column while we're here
-  rename(Old.Taxon = Taxon) %>%
+  dplyr::rename(Old.Taxon = Taxon) %>%
   # Replace each cell with NA if it's an exact match with its broader version
   dplyr::mutate(
     Species = ifelse(test = Species == Genus,
@@ -341,13 +341,13 @@ dive.indexes <- comm.data.v3 %>%
   ## The following calculations should be done for every row
   rowwise() %>%
   ## Calculate the indexes
-  mutate(
+  dplyr::mutate(
     Shannon = vegan::diversity(across(-Sample.ID:-Sex),
                                index = 'shannon'),
     Simpson = vegan::diversity(across(-Sample.ID:-Sex),
                                index = 'simpson'),
     Richness = vegan::specnumber(across(-Sample.ID:-Sex)),
-    Pielous = Shannon / log(Simpson),
+    Pielous = (Shannon / log(Richness)),
     ACE = fossil::ACE(across(-Sample.ID:-Sex),
                       taxa.row = T),
     Chao1 = fossil::chao1(across(-Sample.ID:-Sex),
