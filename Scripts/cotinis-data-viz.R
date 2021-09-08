@@ -215,6 +215,11 @@ ggplot(shan, aes(y = Shannon, x = Stage.Gut,
                 fill = Stage.Gut, color = rep('dummy', 5))) +
   geom_bar(stat = 'identity') +
   geom_errorbar(aes(ymax = Shannon + se, ymin = Shannon - se), width = 0.2) +
+  geom_text(label = "b", x = 0.7, y =  3.8, size = 5) +
+  geom_text(label = "a", x = 1.7, y =  2.3, size = 5) +
+  geom_text(label = "c", x = 2.7, y =  6.15, size = 5) +
+  geom_text(label = "bc", x = 3.7, y = 4.75, size = 5) +
+  geom_text(label = "c", x = 4.7, y =  5.45, size = 5) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "Shannon Diversity") +
@@ -227,6 +232,12 @@ ggplot(piel, aes(y = Pielous, x = Stage.Gut,
                  fill = Stage.Gut, color = rep('dummy', 5))) +
   geom_bar(stat = 'identity') +
   geom_errorbar(aes(ymax = Pielous + se, ymin = Pielous - se), width = 0.2) +
+  geom_text(label = "b", x = 0.7, y =  0.775, size = 5) +
+  geom_text(label = "a", x = 1.7, y =  0.65, size = 5) +
+  geom_text(label = "c", x = 2.7, y =  0.97, size = 5) +
+  geom_text(label = "b", x = 3.7, y =  0.795, size = 5) +
+  geom_text(label = "bc", x = 4.7, y = 0.815, size = 5) +
+  ylim(0, 1.05) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "Pielou's Evenness") +
@@ -239,6 +250,12 @@ ggplot(simp, aes(y = Simpson, x = Stage.Gut,
                  fill = Stage.Gut, color = rep('dummy', 5))) +
   geom_bar(stat = 'identity') +
   geom_errorbar(aes(ymax = Simpson + se, ymin = Simpson - se), width = 0.2) +
+  geom_text(label = "b", x = 0.7, y =  0.99, size = 5) +
+  geom_text(label = "a", x = 1.7, y =  0.82, size = 5) +
+  geom_text(label = "b", x = 2.7, y =  1.05, size = 5) +
+  geom_text(label = "b", x = 3.7, y =  1, size = 5) +
+  geom_text(label = "b", x = 4.7, y =  1.025, size = 5) +
+  ylim(0, 1.1) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "Simpson Diversity") +
@@ -251,6 +268,11 @@ ggplot(ace, aes(y = ACE, x = Stage.Gut, fill = Stage.Gut,
                 color = rep('dummy', 5))) +
   geom_bar(stat = 'identity') +
   geom_errorbar(aes(ymax = ACE + se, ymin = ACE - se), width = 0.2) +
+  geom_text(label = "ab", x = 0.7, y = 180, size = 5) +
+  geom_text(label = "a", x = 1.7, y =  100, size = 5) +
+  geom_text(label = "bc", x = 2.7, y = 740, size = 5) +
+  geom_text(label = "b", x = 3.7, y =  590, size = 5) +
+  geom_text(label = "c", x = 4.7, y =  975, size = 5) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "ACE") +
@@ -263,6 +285,11 @@ ggplot(chao, aes(y = Chao1, x = Stage.Gut, fill = Stage.Gut,
                 color = rep('dummy', 5))) +
   geom_bar(stat = 'identity') +
   geom_errorbar(aes(ymax = Chao1 + se, ymin = Chao1 - se), width = 0.2) +
+  geom_text(label = "ab", x = 0.7, y = 180, size = 5) +
+  geom_text(label = "a", x = 1.7, y =  100, size = 5) +
+  geom_text(label = "bc", x = 2.7, y = 740, size = 5) +
+  geom_text(label = "b", x = 3.7, y =  590, size = 5) +
+  geom_text(label = "c", x = 4.7, y =  975, size = 5) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "Chao1 Index") +
