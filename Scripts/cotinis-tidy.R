@@ -23,29 +23,38 @@ myWD <- getwd()
 # Necessary libraries
 library(remotes); library(qiime2R); library(tidyverse)
 library(stringr); library(vegan); library(fossil)
+library(ape); library(phyloseq)
 
 ## ------------------------------------------- ##
                 # Load Data ####
 ## ------------------------------------------- ##
 # Read in the data
   ## Community dataset
-comm.qza <- read_qza("./Data/cotinisdeblur/table.qza")
+comm.qza <- read_qza("./Data/Raw Data/table.qza")
 comm.data <- as.data.frame(comm.qza$data)
 
-  ## FeatureID to taxonomy file
-tax.qza <- read_qza("./Data/diversity6/taxonomy.qza")
+  ## FeatureID to taxonomy information
+tax.qza <- read_qza("./Data/Raw Data/taxonomy.qza")
 tax.data <- as.data.frame(tax.qza$data)
 
+  ## Unrooted tree
+tree.qza <- read_qza("./Data/Raw Data/unrooted-tree.qza")
+tree.data <- tree.qza$data
+  
   ## Metadata file connecting sample ID with sex/life stage/etc.
-meta <- read.csv("./Data/cotinis-metadata.csv")
+meta <- read.csv("./Data/Raw Data/cotinis-metadata.csv")
 
 # Look at what we've got
 str(comm.data)
 str(tax.data)
+str(tree.data)
 str(meta)
 
+## -------------------------------------------------------------- ##
+               # Part 1: Taxonomy Metadata Tidying ####
+## -------------------------------------------------------------- ##
 ## ------------------------------------------- ##
-     # Get a More Meaningful Taxon ID ####
+    # P1-1: Fix Concatenated Taxon ID ####
 ## ------------------------------------------- ##
 # Split the Taxon by the semicolons (it is too dense as is)
 tax.data.v2 <- tax.data %>%
@@ -108,6 +117,9 @@ plyr::count(is.na(tax.data.v2$Domain))
 # What columns do we have access to?
 names(tax.data.v2)
 
+## ------------------------------------------- ##
+  # P1-2: Fix Duplicate IDs (in same row) ####
+## ------------------------------------------- ##
 # Some columns are duplicated
   # (i.e., family, genus, and species have identical entries)
 # Need to fix that
@@ -258,11 +270,14 @@ plyr::count(is.na(tax.data.v5$Taxon))
 
 # Save this out for later reference
 write.csv(tax.data.v5,
-          "./Data/taxonomy.csv",
+          "./Data/Tidy Data/taxonomy.csv",
           row.names = F)
 
+## -------------------------------------------------------------- ##
+                # Part 2: Community Data Tidying ####
+## -------------------------------------------------------------- ##
 ## ------------------------------------------- ##
-   # Exchange FeatureID for new Taxon Col ####
+    # P2-1: Exchange FeatureID for Taxon ####
 ## ------------------------------------------- ##
 # Get featureID out of rownames and into a column
 comm.data$FeatureID <- rownames(comm.data)
@@ -284,7 +299,7 @@ comm.data.v1 <- comm.data %>%
 comm.data.v2 <- as.data.frame(t(comm.data.v1))
 
 ## ------------------------------------------- ##
-        # Integrate & Tidy Metadata ####
+     # P2-2: Integrate & Tidy Metadata ####
 ## ------------------------------------------- ##
 # Process data
 comm.data.v3 <- comm.data.v2 %>%
@@ -331,10 +346,12 @@ sort(unique(comm.data.v3$Gut.Region))
 names(comm.data.v3[c(1:10, (ncol(comm.data.v3)-10):ncol(comm.data.v3))])
 
 # Save this out for beta diversity calculation in another script
-write.csv(comm.data.v3, "./Data/beta-diversity-data.csv", row.names = F)
+write.csv(comm.data.v3,
+          "./Data/Tidy Data/beta-diversity-data.csv",
+          row.names = F)
 
 ## ------------------------------------------- ##
-    # Calculate Alpha Diversity Indices ####
+     # P2-3: Calculate Alpha Diversity ####
 ## ------------------------------------------- ##
 # Calculate each index
 dive.indexes <- comm.data.v3 %>%
@@ -360,7 +377,50 @@ dive.indexes <- comm.data.v3 %>%
 head(dive.indexes)
 
 # This dataframe is ready for use in stats/visualization!
-write.csv(dive.indexes, "./Data/alpha-diversity-data.csv", row.names = F)
+write.csv(dive.indexes,
+          "./Data/Tidy Data/alpha-diversity-data.csv",
+          row.names = F)
+
+## -------------------------------------------------------------- ##
+            # Part 3: Phylogenetic Tree Tidying ####
+## -------------------------------------------------------------- ##
+# Look at the tree file
+str(tree.data)
+
+# Make a duplicate
+tree.data.v2 <- tree.data
+
+## ------------------------------------------- ##
+          # P3-1: Fix Tip Labels ####
+## ------------------------------------------- ##
+# Tip labels are named with FeatureID which is not informative
+  ## Want to replace with our tidied "Taxon" column
+tree.data.v2$tip.label.actual <- tax.data.v5$Taxon[match(tree.data$tip.label, tax.data.v5$Feature.ID)]
+
+# Check it out
+str(tree.data.v2)
+
+# Remove the old tip label
+tree.data.v2$tip.label <- NULL
+
+# Re-name the new tip label so later functions don't get suprised and frightened
+tree.data.v2$tip.label <- tree.data.v2$tip.label.actual
+tree.data.v2$tip.label.actual <- NULL
+
+# Double check what we're left with
+str(tree.data.v2)
+
+# Save it
+write.tree(phy = tree.data.v2,
+           "./Data/Tidy Data/unrooted-tree.tre")
+
+## -------------------------------------------------------------- ##
+          # Part 4: Calculate Unifrac Distances ####
+## -------------------------------------------------------------- ##
+## ------------------------------------------- ##
+         # P4-1: Weighted Unifrac ####
+## ------------------------------------------- ##
+#unifrac::unifrac(tree.data.v2)
 
 # END ####
 
