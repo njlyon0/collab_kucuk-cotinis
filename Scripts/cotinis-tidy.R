@@ -415,12 +415,155 @@ write.tree(phy = tree.data.v2,
            "./Data/Tidy Data/unrooted-tree.tre")
 
 ## -------------------------------------------------------------- ##
-          # Part 4: Calculate Unifrac Distances ####
+              # Part 4: Taxon Abundance Tidying ####
 ## -------------------------------------------------------------- ##
 ## ------------------------------------------- ##
-         # P4-1: Weighted Unifrac ####
+    # P4-1: Migrate Phylum and Family ####
 ## ------------------------------------------- ##
-#unifrac::unifrac(tree.data.v2)
+# Check structure of taxon metadata
+str(tax.data.v5)
+
+# And the community data
+str(comm.data.v3)
+
+# Create the necessary community dataset
+comm.data.v4 <- comm.data.v3 %>%
+  # Pivot to long format
+  pivot_longer(
+    cols = -Sample.ID:-Sex,
+    names_to = "Taxon",
+    values_to = "Abundance"
+  ) %>%
+  # Bring over all of the columns from the taxonomic data
+  left_join(tax.data.v5, by = "Taxon") %>%
+  # Keep only desired columns (non-specified columns are dropped)
+  dplyr::select(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
+                Domain, Phylum, Family, Abundance) %>%
+  # Return df
+  as.data.frame()
+
+# Check what we've created
+str(comm.data.v4)
+
+## ------------------------------------------- ##
+   # P4-2: Check Phylum & Family Columns ####
+## ------------------------------------------- ##
+# Check domain (shouldn't have issues but better safe than sorry)
+sort(unique(comm.data.v4$Domain))
+
+# Check phylum
+sort(unique(comm.data.v4$Phylum))
+  ## "RsaHF231" is a candidate phylum so we'll allow it (for now)
+
+# Check family
+sort(unique(comm.data.v4$Family))
+  ## Some worrisome so let's get more detail on those
+
+# Make a vector of potentially incorrect family IDs
+check.fam <- c("0319-6G20", "67-14", "A0839", "A4b", "AKYG1722", "bacteriap25",
+             "BIrii41", "Brachyspirales Incertae Sedis", "Clade I",
+             "Clostridiaceae 1", "Clostridiales vadinBB60 group", 
+             "Coriobacteriales Incertae Sedis", "D05-2", "Family XIII",
+             "JG30-KF-CM45", "KF-JG30-B3", "metagenome",
+             "Rhizobiales Incertae Sedis", "SC-I-84",
+             "Solibacteraceae (Subgroup 3)", "uncultured", "uncultured bacterium",
+             "uncultured Chloroflexi bacterium", "uncultured delta proteobacterium",
+             "uncultured Firmicutes bacterium", "uncultured Mollicutes bacterium",
+             "uncultured rumen bacterium", "uncultured soil bacterium",
+             "Unknown Family", "wastewater metagenome", "WD2101 soil group")
+
+# Examine the taxonomic data we have on these dubious "families"
+dubious.fams <- tax.data.v5 %>%
+  dplyr::filter(Family %in% check.fam) %>%
+  as.data.frame()
+
+# Look at this
+# View(dubious.fams)
+
+# Because it's abundance, we can leave this alone (though may need to return)
+
+## ------------------------------------------- ##
+      # P4-3: Family-Level Abundance ####
+## ------------------------------------------- ##
+# Want family-level abundance
+fam.abun <- comm.data.v4 %>%
+  # Group by needed columns
+  group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
+           Domain, Phylum, Family) %>%
+  # Sum abundance within these groups
+  summarise(
+    Abundance = sum(Abundance, na.rm = T)
+  ) %>%
+  # Ungroup
+  ungroup() %>%
+  # Remove any NAs
+  filter(!is.na(Family)) %>%
+  # Remove any 0 abundances
+  filter(Abundance != 0) %>%
+  # Return df
+  as.data.frame()
+
+# Should have lost *a lot* of rows
+nrow(comm.data.v4) - nrow(fam.abun)
+dim(comm.data.v4); dim(fam.abun)
+
+# Save this file for later use
+write.csv(fam.abun,
+          "./Data/Tidy Data/family-abun.csv",
+          row.names = F)
+
+## ------------------------------------------- ##
+      # P4-4: Phylum-Level Abundance ####
+## ------------------------------------------- ##
+# Want phylum-level abundance
+phyla.abun <- comm.data.v4 %>%
+  # Remove family column
+    ## This would be done implicitly by group_by()
+  dplyr::select(-Family) %>%
+  # Group by needed columns
+  group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
+           Domain, Phylum) %>%
+  # Sum abundance within these groups
+  summarise(
+    Abundance = sum(Abundance, na.rm = T)
+  ) %>%
+  # Ungroup
+  ungroup() %>%
+  # Remove any NAs
+  filter(!is.na(Phylum)) %>%
+  # Remove any 0 abundances
+  filter(Abundance != 0) %>%
+  # Return df
+  as.data.frame()
+
+# Should have lost *a lot* of rows
+nrow(comm.data.v4) - nrow(phyla.abun)
+dim(comm.data.v4); dim(phyla.abun)
+
+# Save this file for later use
+write.csv(phyla.abun,
+          "./Data/Tidy Data/phylum-abun.csv",
+          row.names = F)
+
+## -------------------------------------------------------------- ##
+          # Part 5: Calculate Unifrac Distances ####
+## -------------------------------------------------------------- ##
+# Re-check what you may need for unifrac distance calculation
+  ## Abundance table
+str(comm.data.v3)
+class(comm.data.v3)
+
+  ## Phylogenetic tree
+str(tree.data.v2)
+class(tree.data.v2)
+
+## ------------------------------------------- ##
+         # P5-1: Weighted Unifrac ####
+## ------------------------------------------- ##
+# https://rdrr.io/github/MadsAlbertsen/ampvis2/man/unifrac.html
+# unifrac::unifrac(tree.data.v2)
+
+
 
 # END ####
 
