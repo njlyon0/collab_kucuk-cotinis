@@ -20,14 +20,18 @@ library(RRPP); library(tidyverse); library(vegan); library(ape)
       # Data Retrieval & Housekeeping ####
 ## ------------------------------------------- ##
 # Retrieve the relevant datasets
-alpha <- read.csv("./Data/alpha-diversity-data.csv")
-beta <- read.csv("./Data/beta-diversity-data.csv")
+alpha <- read.csv("./Data/Tidy Data/alpha-diversity-data.csv")
+beta <- read.csv("./Data/Tidy Data/beta-diversity-data.csv")
+fams <- read.csv("Data/Tidy Data/family-abun.csv")
+phyla <- read.csv("Data/Tidy Data/phylum-abun.csv")
 wtd.frc.dist <- read.csv("./Data/wtd-unfrc-dist.csv")[-1]
 uwt.frc.dist <- read.csv("./Data/unwtd-unfrc-dist.csv")[-1]
 
 # Look at them to be sure nothing obvious is wrong
 str(alpha)
 str(beta)
+str(fams)
+str(phyla)
 str(wtd.frc.dist)
 
 # Calculate the Bray Curtis and Jaccard distances
@@ -95,5 +99,91 @@ anova(beta.test)
 # Get pairwise results
 summary(pairwise(beta.test, groups = alpha$Stage.Gut))
 
-#END ####
+## ------------------------------------------- ##
+          # Family Abundance Tests ####
+## ------------------------------------------- ##
+# Create relevant subsets
+amid.fam <- fams %>%
+  filter(Stage.Gut == "Adult midgut") %>%
+  as.data.frame()
+ahind.fam <- fams %>%
+  filter(Stage.Gut == "Adult hindgut") %>%
+  as.data.frame()
+lmid.fam <- fams %>%
+  filter(Stage.Gut == "Larval midgut") %>%
+  as.data.frame()
+paunch.fam <- fams %>%
+  filter(Stage.Gut == "Larval paunch") %>%
+  as.data.frame()
+ileum.fam <- fams %>%
+  filter(Stage.Gut == "Larval ileum") %>%
+  as.data.frame()
+
+# Among family abundance differences for:
+
+# Adult midgut
+anova(lm.rrpp(Abundance ~ Family, data = amid.fam, iter = 9999))
+  ## NS
+
+# Adult hindgut
+anova(lm.rrpp(Abundance ~ Family, data = ahind.fam, iter = 9999))
+  ## sig
+
+# Larval midgut
+anova(lm.rrpp(Abundance ~ Family, data = lmid.fam, iter = 9999))
+  ## sig
+
+# Larval Paunch
+anova(lm.rrpp(Abundance ~ Family, data = paunch.fam, iter = 9999))
+  ## sig
+
+# Larval ileum
+anova(lm.rrpp(Abundance ~ Family, data = ileum.fam, iter = 9999))
+  ## sig
+
+## ------------------------------------------- ##
+          # Phylum Abundance Tests ####
+## ------------------------------------------- ##
+# Create relevant subsets
+amid.phyl <- phyla %>%
+  filter(Stage.Gut == "Adult midgut") %>%
+  as.data.frame()
+ahind.phyl <- phyla %>%
+  filter(Stage.Gut == "Adult hindgut") %>%
+  as.data.frame()
+lmid.phyl <- phyla %>%
+  filter(Stage.Gut == "Larval midgut") %>%
+  as.data.frame()
+paunch.phyl <- phyla %>%
+  filter(Stage.Gut == "Larval paunch") %>%
+  as.data.frame()
+ileum.phyl <- phyla %>%
+  filter(Stage.Gut == "Larval ileum") %>%
+  as.data.frame()
+
+# Among phylum abundance differences for:
+
+# Adult midgut
+anova(lm.rrpp(Abundance ~ Phylum, data = amid.phyl, iter = 9999))
+  ## sig
+
+# Adult hindgut
+anova(lm.rrpp(Abundance ~ Phylum, data = ahind.phyl, iter = 9999))
+  ## sig
+
+# Larval midgut
+anova(lm.rrpp(Abundance ~ Phylum, data = lmid.phyl, iter = 9999))
+  ## sig
+
+# Larval Paunch
+anova(lm.rrpp(Abundance ~ Phylum, data = paunch.phyl, iter = 9999))
+  ## sig
+
+# Larval ileum
+anova(lm.rrpp(Abundance ~ Phylum, data = ileum.phyl, iter = 9999))
+  ## sig
+
+  
+
+# END ####
 
