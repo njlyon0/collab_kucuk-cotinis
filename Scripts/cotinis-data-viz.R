@@ -23,7 +23,7 @@ library(tidyverse); library(vegan); library(ape); library(Rmisc)
 alpha <- read.csv("./Data/Tidy Data/alpha-diversity-data.csv")
 beta <- read.csv("./Data/Tidy Data/beta-diversity-data.csv")
 fams <- read.csv("Data/Tidy Data/family-abun.csv")
-phlya <- read.csv("Data/Tidy Data/phylum-abun.csv")
+phyla <- read.csv("Data/Tidy Data/phylum-abun.csv")
 wtd.frc.dist <- read.csv("./Data/wtd-unfrc-dist.csv")[-1]
 uwt.frc.dist <- read.csv("./Data/unwtd-unfrc-dist.csv")[-1]
 
@@ -302,7 +302,7 @@ ggsave(plot = last_plot(), "./Graphs/bar-chao.pdf",
        width = 5, height = 5, units = 'in')
 
 ## -------------------------------------------- ##
-      # Family Abundance Bar Graphs ####
+        # Family Abundance Bar Graphs ####
 ## -------------------------------------------- ##
 # Summarize relevant subsets
 amid.fam <- fams %>%
@@ -391,23 +391,23 @@ ggsave(plot = last_plot(), "./Graphs/fam-abun-larval-ileum.pdf",
         # Phylum Abundance Bar Graphs ####
 ## -------------------------------------------- ##
 # Summarize relevant subsets
-amid.phyl <- fams %>%
+amid.phyl <- phyla %>%
   filter(Stage.Gut == "Adult midgut") %>%
   summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
   as.data.frame()
-ahind.phyl <- fams %>%
+ahind.phyl <- phyla %>%
   filter(Stage.Gut == "Adult hindgut") %>%
   summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
   as.data.frame()
-lmid.phyl <- fams %>%
+lmid.phyl <- phyla %>%
   filter(Stage.Gut == "Larval midgut") %>%
   summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
   as.data.frame()
-paunch.phyl <- fams %>%
+paunch.phyl <- phyla %>%
   filter(Stage.Gut == "Larval paunch") %>%
   summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
   as.data.frame()
-ileum.phyl <- fams %>%
+ileum.phyl <- phyla %>%
   filter(Stage.Gut == "Larval ileum") %>%
   summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
   as.data.frame()
@@ -471,6 +471,38 @@ ggplot(ileum.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
   labs(x = "Phylum", y = "Larval Ileum Abundance") +
   pref_theme + theme(legend.position = 'none', axis.text.x = element_text(size = 8))
 ggsave(plot = last_plot(), "./Graphs/phyla-abun-larval-ileum.pdf",
+       width = 6, height = 6, units = 'in')
+
+## -------------------------------------------- ##
+       # Global Phylum Abundance Plot ####
+## -------------------------------------------- ##
+# Look at the phylum-level abundance
+head(phyla)
+
+# Get a global version of that (i.e., one that ditches the sample information)
+phyl.global <- phyla %>%
+  # Remove un-needed columns
+  dplyr::select(Domain, Phylum, Abundance) %>%
+  # Group by phylum
+  group_by(Phylum) %>%
+  # Sum to get one instance of each
+  dplyr::summarise(
+    Abundance = sum(Abundance, na.rm = T)
+  ) %>%
+  as.data.frame()
+
+# Look at what that produced
+head(phyl.global)
+
+# Graph that
+ggplot(phyl.global, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+                       fill = 'x', color = 'x')) +
+  geom_bar(stat = 'identity') +
+  scale_fill_manual(values = "#41ab5d") +
+  scale_color_manual(values = 'black') +
+  labs(x = "Phylum", y = "Abundance") +
+  pref_theme + theme(legend.position = 'none', axis.text.x = element_text(size = 8))
+ggsave(plot = last_plot(), "./Graphs/phyla-abun-all.pdf",
        width = 6, height = 6, units = 'in')
 
 # END ####
