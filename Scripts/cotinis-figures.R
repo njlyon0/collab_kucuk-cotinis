@@ -210,5 +210,129 @@ ggplot2::ggsave("./Figures/Abundance-Superfigure.pdf",
                 width = 5, height = 4,
                 plot = last_plot())
 
+## -------------------------------------------- ##
+      # Figure 4 - Relative Abundance ####
+## -------------------------------------------- ##
+## ----------------------------- ##
+      # Fig 4 Housekeeping ####
+## ----------------------------- ##
+# Look at the range of relative abundances
+  ## Visually
+psych::multi.hist(fams$relativeAbun)
+psych::multi.hist(phyla$relativeAbun)
+  ## Numerically
+range(fams$relativeAbun)
+range(phyla$relativeAbun)
+
+# Identify the threshold value of "too low"
+abun.thresh <- 5
+
+# We have a good alternative to dropping low abundances altogether:
+fams.v2 <- fams %>%
+  # Remove unneeded columns
+  dplyr::select(Sample.ID, Family, relativeAbun) %>%
+  dplyr::mutate(
+    # Change the family to "other" if it's less than the cutoff
+    Family = ifelse(relativeAbun < abun.thresh,
+                    yes = paste0("Family <", abun.thresh, "% Total"),
+                    no = Family)
+    ) %>%
+  # Then, within sample,
+  group_by(Sample.ID, Family) %>%
+  # Sum through the relative abundances
+  dplyr::summarise(
+    relativeAbun = sum(relativeAbun, na.rm = T)
+  ) %>%
+  as.data.frame()
+
+# Do the same for phylum
+phyla.v2 <- phyla %>%
+  dplyr::select(Sample.ID, Phylum, relativeAbun) %>%
+  dplyr::mutate(
+    Phylum = ifelse(relativeAbun < abun.thresh,
+                    yes = paste0("Phyla <", abun.thresh, "% Total"),
+                    no = Phylum)
+  ) %>%
+  group_by(Sample.ID, Phylum) %>%
+  dplyr::summarise(relativeAbun = sum(relativeAbun, na.rm = T)) %>%
+  as.data.frame()
+
+# Check the ranges to see that worked
+range(fams.v2$relativeAbun)
+range(phyla.v2$relativeAbun)
+
+## ----------------------------- ##
+      # Fig 4 Graphing ####
+## ----------------------------- ##
+# Family-level *relative* abundance figure
+ggplot(fams.v2, aes(x = Sample.ID, y = relativeAbun,
+                    fill = Family, color = 'x',
+                    order = -relativeAbun)) +
+  geom_bar(stat = 'identity', position = 'stack', width = 0.65) +
+  scale_color_manual(values = 'black') +
+  labs(x = 'Sample ID', y = "Relative Abundance (%)") +
+  #scale_fill_manual(values = sp::bpy.colors()) +
+  pref_theme + theme(axis.title.x = element_blank())
+  #theme(legend.position = 'right', axis.text.x = element_text(size = 8))
+
+# Set colors for each phylum
+phyla.cols <- c("white", "#ffff99", "#6a3d9a",
+                "#cab2d6","#ff7f00","#fdbf6f", 
+                "#e31a1c", "#fb9a99", "#33a02c", 
+                "#b2df8a", "#1f78b4", "#a6cee3")
+
+# Re-level the Sample.ID factor
+phyla.v2$Sample.ID <- factor(phyla.v2$Sample.ID,
+                             levels = c(
+                               # Adult midgut
+                               "Amid7", "Amid12", "Amid39", "Amid40",
+                               "Amid41", "Amid46", "Amid48", "Amid49",
+                               # Adult hindgut
+                               "hind4", "hind7", "hind12", "hind39",
+                               "hind40", "hind41", "hind46", "hind48",
+                               "hind49",  
+                               # Larval midgut
+                               "Lmid2", "Lmid3", "Lmid5", "Lmid9",
+                               # Larval ileum
+                               "Ileum2", "Ileum3", "Ileum5", "Ileum7", "Ileum9",
+                               "Ileum12", "Ileum17", "Ileum18", "Ileum19",
+                               "Ileum20", "Ileum21",
+                               # Larval paunch
+                               "Paunch2", "Paunch3", "Paunch5", "Paunch9",
+                               "Paunch12", "Paunch17", "Paunch18", "Paunch19",
+                               "Paunch20", "Paunch21"
+                             ))
+
+# Phylum-level relative abundance
+ggplot(phyla.v2, aes(x = Sample.ID, y = relativeAbun,
+                     fill = reorder(Phylum, relativeAbun),
+                     color = 'x')) +
+  geom_bar(stat = 'identity', position = 'stack') +
+  scale_color_manual(values = 'black') +
+  labs(x = 'Sample ID', y = "Relative Abundance (%)") +
+  scale_fill_manual(values = phyla.cols) +
+  # Add vertical lines separating gut/life stages
+  geom_vline(xintercept = 8.5) +
+  geom_vline(xintercept = 17.5) +
+  geom_vline(xintercept = 21.5) +
+  geom_vline(xintercept = 32.5) +
+  # Add text to top of graph defining each chunk (delinated by vertical lines)
+  geom_text(label = "Adult Midgut", hjust = 'center', x = 4.25, y = 103) +
+  geom_text(label = "Adult Hindgut", hjust = 'center', x = 13, y = 103) +
+  geom_text(label = "Larval Mid.", hjust = 'center', x = 19.5, y = 103) +
+  geom_text(label = "Ileum", hjust = 'center', x = 27, y = 103) +
+  geom_text(label = "Paunch", hjust = 'center', x = 37.5, y = 103) +
+  # Remaining aesthetics things
+  pref_theme + guides(color = 'none') +
+  theme(legend.position = 'right',
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(size = 9))
+  
+# Save this!
+ggplot2::ggsave("./Figures/Relative-Abundance-Superfigure.pdf",
+                width = 11, height = 5,
+                plot = last_plot())
+
+
 # END ####
 
