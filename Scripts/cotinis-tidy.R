@@ -500,6 +500,19 @@ fam.abun <- comm.data.v4 %>%
   filter(!is.na(Family)) %>%
   # Remove any 0 abundances
   filter(Abundance != 0) %>%
+  # Also want to calculate relative abundance
+    ## "relative" means within sample calculations are needed
+  group_by(Sample.ID) %>%
+  # Calculate total abundance for each sample
+  dplyr::mutate(
+    totalAbun = sum(Abundance)
+  ) %>%
+  # Ungroup
+  ungroup() %>%
+  # Calculate relative abundance
+  dplyr::mutate(
+    relativeAbun = (Abundance / totalAbun) * 100
+  ) %>%
   # Return df
   as.data.frame()
 
@@ -533,6 +546,19 @@ phyla.abun <- comm.data.v4 %>%
   filter(!is.na(Phylum)) %>%
   # Remove any 0 abundances
   filter(Abundance != 0) %>%
+  # Also want to calculate relative abundance
+    ## "relative" means within sample calculations are needed
+  group_by(Sample.ID) %>%
+  # Calculate total abundance for each sample
+  dplyr::mutate(
+    totalAbun = sum(Abundance)
+  ) %>%
+  # Ungroup
+  ungroup() %>%
+  # Calculate relative abundance
+  dplyr::mutate(
+    relativeAbun = (Abundance / totalAbun) * 100
+  ) %>%
   # Return df
   as.data.frame()
 
@@ -546,7 +572,7 @@ write.csv(phyla.abun,
           row.names = F)
 
 ## -------------------------------------------------------------- ##
-          # Part 5: Calculate Unifrac Distances ####
+             # Part 5: Calculate Unifrac Distances ####
 ## -------------------------------------------------------------- ##
 # Re-check what you may need for unifrac distance calculation
   ## Abundance table
