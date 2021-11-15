@@ -275,12 +275,6 @@ ggplot(fams.v2, aes(x = Sample.ID, y = relativeAbun,
   pref_theme + theme(axis.title.x = element_blank())
   #theme(legend.position = 'right', axis.text.x = element_text(size = 8))
 
-# Set colors for each phylum
-phyla.cols <- c("white", "#ffff99", "#6a3d9a",
-                "#cab2d6","#ff7f00","#fdbf6f", 
-                "#e31a1c", "#fb9a99", "#33a02c", 
-                "#b2df8a", "#1f78b4", "#a6cee3")
-
 # Re-level the Sample.ID factor
 phyla.v2$Sample.ID <- factor(phyla.v2$Sample.ID,
                              levels = c(
@@ -300,8 +294,13 @@ phyla.v2$Sample.ID <- factor(phyla.v2$Sample.ID,
                                # Larval paunch
                                "Paunch2", "Paunch3", "Paunch5", "Paunch9",
                                "Paunch12", "Paunch17", "Paunch18", "Paunch19",
-                               "Paunch20", "Paunch21"
-                             ))
+                               "Paunch20", "Paunch21"))
+
+# Set colors for each phylum
+phyla.cols <- c("white", "#ffff99", "#6a3d9a",
+                "#cab2d6","#ff7f00","#fdbf6f", 
+                "#e31a1c", "#fb9a99", "#33a02c", 
+                "#b2df8a", "#1f78b4", "#a6cee3")
 
 # Phylum-level relative abundance
 ggplot(phyla.v2, aes(x = Sample.ID, y = relativeAbun,
@@ -326,7 +325,8 @@ ggplot(phyla.v2, aes(x = Sample.ID, y = relativeAbun,
   pref_theme + guides(color = 'none') +
   theme(legend.position = 'right',
         axis.title.x = element_blank(),
-        axis.text.x = element_text(size = 9))
+        axis.text.x = element_text(size = 9),
+        legend.key = element_rect(color = "black"))
   
 # Save this!
 ggplot2::ggsave("./Figures/Relative-Abundance-Superfigure.pdf",
