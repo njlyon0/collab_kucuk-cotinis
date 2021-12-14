@@ -17,9 +17,9 @@ myWD <- getwd()
 library(tidyverse); library(vegan); library(ape)
 library(Rmisc); library(cowplot)
 
-## -------------------------------------------- ##
-      # Data Retrieval & Housekeeping ####
-## -------------------------------------------- ##
+## -------------------------------------------------------------- ##
+              # Data Retrieval & Housekeeping ####
+## -------------------------------------------------------------- ##
 # Retrieve the relevant datasets
 alpha <- read.csv("./Data/Tidy Data/alpha-diversity-data.csv")
 fams <- read.csv("Data/Tidy Data/family-abun.csv")
@@ -43,9 +43,9 @@ pref_theme <- theme_classic() +
         legend.background = element_rect(fill = alpha('black', 0)),
         axis.text.x = element_text(angle = 35, hjust = 1))
 
-## -------------------------------------------- ##
-  # Figure 1 - Alpha Diversity Superfigure ####
-## -------------------------------------------- ##
+## -------------------------------------------------------------- ##
+          # Figure 1 - Alpha Diversity Superfigure ####
+## -------------------------------------------------------------- ##
 # Summarize each of the needed response variables
 chao <- summarySE(data = alpha, measurevar = "Chao1", groupvars = c("Stage.Gut"))
 simp <- summarySE(data = alpha, measurevar = "Simpson", groupvars = c("Stage.Gut"))
@@ -125,14 +125,15 @@ ggplot2::ggsave("./Figures/Alpha-Diversity-Superfigure.pdf",
                 width = 6.5, height = 9,
                 plot = last_plot())
 
-## -------------------------------------------- ##
-   # Figure 2 - Beta Diversity Superfigure ####
-## -------------------------------------------- ##
+## -------------------------------------------------------------- ##
+            # Figure 2 - Beta Diversity Superfigure ####
+## -------------------------------------------------------------- ##
 # Made in PowerPoint (sorry!)
+  ## Individual graphs within figure found in "cotinis-data-viz.R" script
 
-## -------------------------------------------- ##
-     # Figure 3 - Abundance Superfigure ####
-## -------------------------------------------- ##
+## -------------------------------------------------------------- ##
+            # Figure 3 - Abundance Superfigure ####
+## -------------------------------------------------------------- ##
 # Look at the phylum- & family-level abundance
 head(phyla)
 head(fams)
@@ -210,12 +211,12 @@ ggplot2::ggsave("./Figures/Abundance-Superfigure.pdf",
                 width = 5, height = 4,
                 plot = last_plot())
 
+## -------------------------------------------------------------- ##
+                # Figure 4 - Relative Abundance ####
+## -------------------------------------------------------------- ##
 ## -------------------------------------------- ##
-      # Figure 4 - Relative Abundance ####
+              # F4 Housekeeping ####
 ## -------------------------------------------- ##
-## ----------------------------- ##
-      # Fig 4 Housekeeping ####
-## ----------------------------- ##
 # Look at the range of relative abundances
   ## Visually
 psych::multi.hist(fams$relativeAbun)
@@ -261,9 +262,9 @@ phyla.v2 <- phyla %>%
 range(fams.v2$relativeAbun)
 range(phyla.v2$relativeAbun)
 
-## ----------------------------- ##
-      # Fig 4 Graphing ####
-## ----------------------------- ##
+## -------------------------------------------- ##
+               # F4 Graphing ####
+## -------------------------------------------- ##
 # Family-level *relative* abundance figure
 ggplot(fams.v2, aes(x = Sample.ID, y = relativeAbun,
                     fill = Family, color = 'x',
@@ -333,6 +334,342 @@ ggplot2::ggsave("./Figures/Relative-Abundance-Superfigure.pdf",
                 width = 11, height = 5,
                 plot = last_plot())
 
+## -------------------------------------------------------------- ##
+   # Figure 5 - Within Life/Gut Phyla Abundance Superfigure ####
+## -------------------------------------------------------------- ##
+## -------------------------------------------- ##
+        # F5 Housekeeping - All Incl. ####
+## -------------------------------------------- ##
+# Create phylum-level abundance subsets for each life stage/gut section
+amid.phyl <- phyla %>%
+  filter(Stage.Gut == "Adult midgut") %>%
+  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  as.data.frame()
+ahind.phyl <- phyla %>%
+  filter(Stage.Gut == "Adult hindgut") %>%
+  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  as.data.frame()
+lmid.phyl <- phyla %>%
+  filter(Stage.Gut == "Larval midgut") %>%
+  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  as.data.frame()
+paunch.phyl <- phyla %>%
+  filter(Stage.Gut == "Larval paunch") %>%
+  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  as.data.frame()
+ileum.phyl <- phyla %>%
+  filter(Stage.Gut == "Larval ileum") %>%
+  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  as.data.frame()
+
+## -------------------------------------------- ##
+    # F5 Housekeeping - Low Abun Excl. ####
+## -------------------------------------------- ##
+# We may want to cut out our very low abundance individuals to clarify the figures
+
+# Re-identify abundance threshold
+new.abun.thresh <- 5
+
+# Create more subsets with relative abundance threshold implemented
+amid.phyl2 <- phyla %>%
+  dplyr::mutate(
+    Phylum = ifelse(relativeAbun < new.abun.thresh,
+                    yes = paste0("Phyla <", new.abun.thresh, "% Total"),
+                    no = Phylum)
+  ) %>%
+  filter(Stage.Gut == "Adult midgut") %>%
+  group_by(Stage.Gut, Phylum) %>%
+  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  as.data.frame()
+
+ahind.phyl2 <- phyla %>%
+  dplyr::mutate(
+    Phylum = ifelse(relativeAbun < new.abun.thresh,
+                    yes = paste0("Phyla <", new.abun.thresh, "% Total"),
+                    no = Phylum)
+  ) %>%
+  filter(Stage.Gut == "Adult hindgut") %>%
+  group_by(Stage.Gut, Phylum) %>%
+  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  as.data.frame()
+
+lmid.phyl2 <- phyla %>%
+  dplyr::mutate(
+    Phylum = ifelse(relativeAbun < new.abun.thresh,
+                    yes = paste0("Phyla <", new.abun.thresh, "% Total"),
+                    no = Phylum)
+  ) %>%
+  filter(Stage.Gut == "Larval midgut") %>%
+  group_by(Stage.Gut, Phylum) %>%
+  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  as.data.frame()
+
+ileum.phyl2 <- phyla %>%
+  dplyr::mutate(
+    Phylum = ifelse(relativeAbun < new.abun.thresh,
+                    yes = paste0("Phyla <", new.abun.thresh, "% Total"),
+                    no = Phylum)
+  ) %>%
+  filter(Stage.Gut == "Larval ileum") %>%
+  group_by(Stage.Gut, Phylum) %>%
+  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  as.data.frame()
+
+paunch.phyl2 <- phyla %>%
+  dplyr::mutate(
+    Phylum = ifelse(relativeAbun < new.abun.thresh,
+                    yes = paste0("Phyla <", new.abun.thresh, "% Total"),
+                    no = Phylum)
+  ) %>%
+  filter(Stage.Gut == "Larval paunch") %>%
+  group_by(Stage.Gut, Phylum) %>%
+  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  as.data.frame()
+
+## -------------------------------------------- ##
+        # Fig 5 Graphing - All Incl. ####
+## -------------------------------------------- ##
+# Make component graphs of phylum-level abundance within each life stage/gut bit
+## Adult midgut
+amid <- ggplot(amid.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+                              fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  geom_text(label = "Adult Midgut", hjust = 'center',
+            x = (length(unique(amid.phyl$Phylum))/2),
+            y = 1450) +
+  labs(x = "Phylum", y = "Abundance") +
+  pref_theme + theme(legend.position = 'none',
+                     axis.text.x = element_text(size = 8),
+                     axis.text.y = element_text(size = 9),
+                     axis.title.y = element_text(size = 12),
+                     axis.title.x = element_blank())
+
+## Adult hindgut
+ahind <- ggplot(ahind.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+                                fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  geom_text(label = "Adult Hindgut", hjust = 'center',
+            x = (length(unique(ahind.phyl$Phylum))/2),
+            y = 8500) +
+  labs(x = "Phylum", y = "Abundance") +
+  pref_theme + theme(legend.position = 'none',
+                     axis.text.x = element_text(size = 8),
+                     axis.text.y = element_text(size = 9),
+                     axis.title.x = element_blank(),
+                     axis.title.y = element_blank())
+
+## Larval midgut
+lmid <- ggplot(lmid.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+                              fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  geom_text(label = "Larval Midgut", hjust = 'center',
+            x = (length(unique(lmid.phyl$Phylum))/2),
+            y = 1750) +
+  labs(x = "Phyla", y = "Abundance") +
+  pref_theme + theme(legend.position = 'none',
+                     axis.text.x = element_text(size = 8),
+                     axis.text.y = element_text(size = 9),
+                     axis.title = element_text(size = 12))
+
+## Larval ileum
+lile <- ggplot(ileum.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+                               fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  geom_text(label = "Larval Ileum", hjust = 'center',
+            x = (length(unique(ileum.phyl$Phylum))/2),
+            y = 3250) +
+  labs(x = "Phyla", y = "Abundance") +
+  pref_theme + theme(legend.position = 'none',
+                     axis.text.x = element_text(size = 8),
+                     axis.text.y = element_text(size = 9),
+                     axis.title = element_text(size = 12),
+                     axis.title.y = element_blank())
+
+## Larval paunch
+lpau <- ggplot(paunch.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+                                fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  geom_text(label = "Larval Paunch", hjust = 'center',
+            x = (length(unique(paunch.phyl$Phylum))/2),
+            y = 13000) +
+  labs(x = "Phyla", y = "Abundance") +
+  pref_theme + theme(legend.position = 'none',
+                     axis.text.x = element_text(size = 8),
+                     axis.text.y = element_text(size = 9),
+                     axis.title = element_text(size = 12),
+                     axis.title.y = element_blank())
+
+# Examine each
+amid
+ahind
+lmid
+lile
+lpau
+
+# Assemble into larger composite graph
+plot_grid(amid, ahind, NA, lmid, lile, lpau,
+          ncol = 3, nrow = 2,
+          labels = c("A", "B", NA, "C", "D", "E"))
+
+# Option A:
+ggplot2::ggsave("./Figures/Relative-Abundance-Subsets-Superfigure_Option-A.pdf",
+                width = 11, height = 6.5,
+                plot = last_plot())
+
+# We want a second version for Roy to evaluate
+  ## Same content but different approach to alignment
+
+# Make two composite figures
+adults <- plot_grid(amid, ahind,
+                    ncol = 2, nrow = 1,
+                    labels = c("A", "B"))
+larvae <- plot_grid(lmid, lile, lpau,
+                    ncol = 3, nrow = 1,
+                    labels = c("C", "D", "E"))
+
+# And make the actual composite figure with those two sub-components
+plot_grid(adults, larvae,
+          ncol = 1, nrow = 2)
+
+# Save this option
+ggplot2::ggsave("./Figures/Relative-Abundance-Subsets-Superfigure_Option-B.pdf",
+                width = 11, height = 6.5,
+                plot = last_plot())
+
+## -------------------------------------------- ##
+     # Fig 5 Graphing - Low Abun Excl. ####
+## -------------------------------------------- ##
+# Make component graphs of phylum-level abundance within each life stage/gut bit
+## Adult midgut
+amid2 <- ggplot(amid.phyl2, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+                              fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  geom_text(label = "Adult Midgut", hjust = 'center',
+            x = 3, y = 1475) +
+  labs(x = "Phylum", y = "Abundance") +
+  pref_theme + theme(legend.position = 'none',
+                     axis.text.x = element_text(size = 8),
+                     axis.text.y = element_text(size = 9),
+                     axis.title.y = element_text(size = 12),
+                     axis.title.x = element_blank())
+
+## Adult hindgut
+ahind2 <- ggplot(ahind.phyl2, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+                                fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  geom_text(label = "Adult Hindgut", hjust = 'center',
+            x = 3, y = 8500) +
+  labs(x = "Phylum", y = "Abundance") +
+  pref_theme + theme(legend.position = 'none',
+                     axis.text.x = element_text(size = 8),
+                     axis.text.y = element_text(size = 9),
+                     axis.title.x = element_blank(),
+                     axis.title.y = element_blank())
+
+## Larval midgut
+lmid2 <- ggplot(lmid.phyl2, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+                              fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  geom_text(label = "Larval Midgut", hjust = 'center',
+            x = 3.5, y = 1750) +
+  labs(x = "Phyla", y = "Abundance") +
+  pref_theme + theme(legend.position = 'none',
+                     axis.text.x = element_text(size = 8),
+                     axis.text.y = element_text(size = 9),
+                     axis.title = element_text(size = 12))
+
+## Larval ileum
+lile2 <- ggplot(ileum.phyl2, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+                               fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  geom_text(label = "Larval Ileum", hjust = 'center',
+            x = 5, y = 3750) +
+  labs(x = "Phyla", y = "Abundance") +
+  pref_theme + theme(legend.position = 'none',
+                     axis.text.x = element_text(size = 8),
+                     axis.text.y = element_text(size = 9),
+                     axis.title = element_text(size = 12),
+                     axis.title.y = element_blank())
+
+## Larval paunch
+lpau2 <- ggplot(paunch.phyl2, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+                                fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  geom_text(label = "Larval Paunch", hjust = 'center',
+            x = 3, y = 13000) +
+  labs(x = "Phyla", y = "Abundance") +
+  pref_theme + theme(legend.position = 'none',
+                     axis.text.x = element_text(size = 8),
+                     axis.text.y = element_text(size = 9),
+                     axis.title = element_text(size = 12),
+                     axis.title.y = element_blank())
+
+# Examine each
+amid2
+ahind2
+lmid2
+lile2
+lpau2
+
+# Assemble into larger composite graph
+plot_grid(amid2, ahind2, NA, lmid2, lile2, lpau2,
+          ncol = 3, nrow = 2,
+          labels = c("A", "B", NA, "C", "D", "E"))
+
+# Option A:
+ggplot2::ggsave("./Figures/Relative-Abundance-Subsets-Superfigure_Option-C.pdf",
+                width = 11, height = 6.5,
+                plot = last_plot())
+
+# We want a second version for Roy to evaluate
+## Same content but different approach to alignment
+
+# Make two composite figures
+adults2 <- plot_grid(amid2, ahind2,
+                    ncol = 2, nrow = 1,
+                    labels = c("A", "B"))
+larvae2 <- plot_grid(lmid2, lile2, lpau2,
+                    ncol = 3, nrow = 1,
+                    labels = c("C", "D", "E"))
+
+# And make the actual composite figure with those two sub-components
+plot_grid(adults2, larvae2,
+          ncol = 1, nrow = 2)
+
+# Save this option
+ggplot2::ggsave("./Figures/Relative-Abundance-Subsets-Superfigure_Option-D.pdf",
+                width = 11, height = 6.5,
+                plot = last_plot())
 
 # END ####
 
