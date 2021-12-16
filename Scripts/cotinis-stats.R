@@ -1,10 +1,14 @@
-## ---------------------------------------------------------------------------------- ##
-                  # Kucuk Cotinis Project - Visualization Code
-## ---------------------------------------------------------------------------------- ##
+## -------------------------------------------------------------- ##
+              # Kucuk Cotinis Project - Analysis Code
+## -------------------------------------------------------------- ##
 # Code written by Nicholas J Lyon
 
 # PURPOSE:
-  ## Do the analysis that Roy (Kucuk) wants
+  ## Test the three hypotheses posed by Roy (Kucuk)
+  ### 1) bacterial communities differ between adults and larvae
+  ### 2) bacterial communities differ among gut stages
+  ### 3) bacterial communities differ between sexes
+  #### Note that 1 & 2 are tested together (see paper methods for explanation)
 
 # Clear environment (always better to start with tabula rasa)
 rm(list = ls())
@@ -16,9 +20,9 @@ myWD <- getwd()
 # Necessary libraries
 library(RRPP); library(tidyverse); library(vegan); library(ape)
 
-## ------------------------------------------- ##
-      # Data Retrieval & Housekeeping ####
-## ------------------------------------------- ##
+## -------------------------------------------------------------- ##
+                # Data Retrieval & Housekeeping ####
+## -------------------------------------------------------------- ##
 # Retrieve the relevant datasets
 alpha <- read.csv("./Data/Tidy Data/alpha-diversity-data.csv")
 beta <- read.csv("./Data/Tidy Data/beta-diversity-data.csv")
@@ -50,8 +54,21 @@ frc.data <- beta %>%
   filter(Sample.ID != "Amid48") %>%
   as.data.frame()
 
+# Create an adults-only subset of alpha diversity data
+alpha.sex <- alpha %>%
+  filter(Sex == "female" | Sex == "male") %>%
+  as.data.frame()
+
+# Do the same for beta diversity
+beta.sex <- beta %>%
+  filter(Sex == "female" | Sex == "male") %>%
+  as.data.frame()
+
+## -------------------------------------------------------------- ##
+                  # Life Stage / Gut Region Tests ####
+## -------------------------------------------------------------- ##
 ## ------------------------------------------- ##
-        # Alpha Diversity Tests ####
+          # Alpha Div. ~ Life/Gut ####
 ## ------------------------------------------- ##
 # Incl. Chao, ACE, Simpson, and Shannon diversity
 str(alpha)
@@ -85,7 +102,7 @@ anova(ace)
 summary(pairwise(ace, groups = alpha$Stage.Gut))
 
 ## ------------------------------------------- ##
-          # Beta Diversity Tests ####
+            # Beta Div. ~ Life/Gut ####
 ## ------------------------------------------- ##
 # Get a version of the beta diversity community that lacks all other values
 beta.resp <- as.matrix(select(beta, -Sample.ID:-Sex))
@@ -99,9 +116,45 @@ anova(beta.test)
 # Get pairwise results
 summary(pairwise(beta.test, groups = alpha$Stage.Gut))
 
+## -------------------------------------------------------------- ##
+                          # Sex Tests ####
+## -------------------------------------------------------------- ##
 ## ------------------------------------------- ##
-          # Family Abundance Tests ####
+            # Alpha Div. ~ Sex ####
 ## ------------------------------------------- ##
+# Incl. Chao, ACE, Simpson, and Shannon diversity
+str(alpha.sex)
+
+# Chao1 Diversity
+anova(lm.rrpp(Chao1 ~ Sex, data = alpha.sex, iter = 9999))
+
+# Shannon Diversity
+anova(lm.rrpp(Shannon ~ Sex, data = alpha.sex, iter = 9999))
+
+# Simpson Diversity
+anova(lm.rrpp(Simpson ~ Sex, data = alpha.sex, iter = 9999))
+
+# Pielou's Evenness
+anova(lm.rrpp(Pielous ~ Sex, data = alpha.sex, iter = 9999))
+
+# ACE
+anova(lm.rrpp(ACE ~ Sex, data = alpha.sex, iter = 9999))
+
+## ------------------------------------------- ##
+              # Beta Div. ~ Sex ####
+## ------------------------------------------- ##
+# Get a version of the beta diversity community that lacks all other values
+beta.sex.resp <- as.matrix(select(beta.sex, -Sample.ID:-Sex))
+
+# Now plug that whole dataframe in as the response variable
+beta.sex.test <- lm.rrpp(beta.sex.resp ~ Sex, data = beta.sex)
+
+# Look at the test
+anova(beta.sex.test)
+
+## -------------------------------------------------------------- ##
+                    # Family Abundance Tests ####
+## -------------------------------------------------------------- ##
 # Create relevant subsets
 amid.fam <- fams %>%
   filter(Stage.Gut == "Adult midgut") %>%
@@ -141,9 +194,9 @@ anova(lm.rrpp(Abundance ~ Family, data = paunch.fam, iter = 9999))
 anova(lm.rrpp(Abundance ~ Family, data = ileum.fam, iter = 9999))
   ## sig
 
-## ------------------------------------------- ##
-          # Phylum Abundance Tests ####
-## ------------------------------------------- ##
+## -------------------------------------------------------------- ##
+                    # Phylum Abundance Tests ####
+## -------------------------------------------------------------- ##
 # Create relevant subsets
 amid.phyl <- phyla %>%
   filter(Stage.Gut == "Adult midgut") %>%
