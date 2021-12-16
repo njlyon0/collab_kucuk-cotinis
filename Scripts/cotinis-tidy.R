@@ -1,5 +1,5 @@
 ## ---------------------------------------------------------------------------------- ##
-                  # Kucuk Cotinis Project - Visualization Code
+                  # Kucuk Cotinis Project - Wrangling Code
 ## ---------------------------------------------------------------------------------- ##
 # Code written by Nicholas J Lyon
 
