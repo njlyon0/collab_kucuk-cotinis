@@ -15,7 +15,7 @@ myWD <- getwd()
 
 # Necessary libraries
 library(tidyverse); library(vegan); library(ape)
-library(Rmisc); library(cowplot)
+library(Rmisc); library(cowplot); library(ggvenn)
 
 ## -------------------------------------------------------------- ##
               # Data Retrieval & Housekeeping ####
@@ -24,6 +24,7 @@ library(Rmisc); library(cowplot)
 alpha <- read.csv("./Data/Tidy Data/alpha-diversity-data.csv")
 fams <- read.csv("Data/Tidy Data/family-abun.csv")
 phyla <- read.csv("Data/Tidy Data/phylum-abun.csv")
+beta <- read.csv("./Data/Tidy Data/beta-diversity-data.csv")
 
 # Look at them to be sure nothing obvious is wrong
 str(alpha)
@@ -50,6 +51,7 @@ pref_theme <- theme_classic() +
 chao <- summarySE(data = alpha, measurevar = "Chao1", groupvars = c("Stage.Gut"))
 simp <- summarySE(data = alpha, measurevar = "Simpson", groupvars = c("Stage.Gut"))
 ace <- summarySE(data = alpha, measurevar = "ACE", groupvars = c("Stage.Gut"))
+shan <- summarySE(data = alpha, measurevar = "Shannon", groupvars = c("Stage.Gut"))
 
 # Re-level the factor column
   ## Pref factor order
@@ -59,6 +61,7 @@ stage.gut.lvls <- c("Adult hindgut", "Adult midgut", "Larval midgut",
 chao$Stage.Gut <- factor(chao$Stage.Gut, levels = stage.gut.lvls)
 simp$Stage.Gut <- factor(simp$Stage.Gut, levels = stage.gut.lvls)
 ace$Stage.Gut <- factor(ace$Stage.Gut, levels = stage.gut.lvls)
+shan$Stage.Gut <- factor(shan$Stage.Gut, levels = stage.gut.lvls)
 
 # Chao 1 Diversity
 chao.plt <- ggplot(chao, aes(y = Chao1, x = Stage.Gut,
@@ -91,9 +94,7 @@ simp.plt <- ggplot(simp, aes(y = Simpson, x = Stage.Gut,
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "Simpson Diversity") +
-  pref_theme + theme(axis.ticks.x = element_blank(),
-                     axis.text.x = element_blank(),
-                     axis.title.x = element_blank())
+  pref_theme
 
 # ACE Diversity
 ace.plt <- ggplot(ace, aes(y = ACE, x = Stage.Gut,
@@ -102,27 +103,48 @@ ace.plt <- ggplot(ace, aes(y = ACE, x = Stage.Gut,
   geom_errorbar(aes(ymax = ACE + se, ymin = ACE - se), width = 0.2) +
   geom_text(label = "ab", x = 0.7, y = 180, size = 5) +
   geom_text(label = "a", x = 1.7, y =  100, size = 5) +
-  geom_text(label = "bc", x = 2.7, y = 740, size = 5) +
-  geom_text(label = "b", x = 3.7, y =  590, size = 5) +
-  geom_text(label = "c", x = 4.7, y =  975, size = 5) +
+  geom_text(label = "bc", x = 2.7, y = 750, size = 5) +
+  geom_text(label = "b", x = 3.7, y =  600, size = 5) +
+  geom_text(label = "c", x = 4.7, y =  985, size = 5) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "ACE") +
+  pref_theme + theme(axis.ticks.x = element_blank(),
+                     axis.text.x = element_blank(),
+                     axis.title.x = element_blank())
+
+shan.plt <- ggplot(shan, aes(y = Shannon, x = Stage.Gut,
+                             fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  geom_errorbar(aes(ymax = Shannon + se, ymin = Shannon - se), width = 0.2) +
+  geom_text(label = "b", x = 0.7, y =  3.8, size = 5) +
+  geom_text(label = "a", x = 1.7, y =  2.3, size = 5) +
+  geom_text(label = "c", x = 2.7, y =  6.15, size = 5) +
+  geom_text(label = "bc", x = 3.7, y = 4.75, size = 5) +
+  geom_text(label = "c", x = 4.7, y =  5.45, size = 5) +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  labs(x = "Life Stage & Gut Region", y = "Shannon Diversity") +
   pref_theme + theme(legend.position = 'none')
 
 # Examine your handiwork
 chao.plt
 simp.plt
 ace.plt
+shan.plt
 
 # Create the superfigure
-plot_grid(chao.plt, simp.plt, ace.plt,
-          ncol = 1, nrow = 3, 
-          labels = c("A", "B", "C"))
+plot_grid(chao.plt, ace.plt,
+          simp.plt, shan.plt,
+          align = 'v',
+          rel_heights = c(0.7, 1),
+          ncol = 2, nrow = 2, 
+          labels = c("A", "B", "C", "D"))
 
 # Save it
-ggplot2::ggsave("./Figures/Alpha-Diversity-Superfigure.pdf",
-                width = 6.5, height = 9,
+ggplot2::ggsave("./Figures/Alpha-Diversity-Superfigure.tiff",
+                device = 'tiff',
+                width = 7, height = 7,
                 plot = last_plot())
 
 ## -------------------------------------------------------------- ##
@@ -207,7 +229,8 @@ fam.plt
 plot_grid(phy.plt, fam.plt, ncol = 2, nrow = 1, labels = c("A", "B"))
 
 # Save it
-ggplot2::ggsave("./Figures/Abundance-Superfigure.pdf",
+ggplot2::ggsave("./Figures/Abundance-Superfigure.tiff",
+                device = 'tiff',
                 width = 5, height = 4,
                 plot = last_plot())
 
@@ -330,7 +353,8 @@ ggplot(phyla.v2, aes(x = Sample.ID, y = relativeAbun,
         legend.key = element_rect(color = "black"))
   
 # Save this!
-ggplot2::ggsave("./Figures/Relative-Abundance-Superfigure.pdf",
+ggplot2::ggsave("./Figures/Relative-Abundance-Superfigure.tiff",
+                device = 'tiff',
                 width = 11, height = 5,
                 plot = last_plot())
 
@@ -498,9 +522,102 @@ plot_grid(amid, ahind, NA, lmid, lile, lpau,
           labels = c("A", "B", NA, "C", "D", "E"))
 
 # Option A:
-ggplot2::ggsave("./Figures/Relative-Abundance-Subsets-Superfigure.pdf",
+ggplot2::ggsave("./Figures/Relative-Abundance-Subsets-Superfigure.tiff",
+                device = 'tiff',
                 width = 11, height = 6.5,
                 plot = last_plot())
+
+
+## -------------------------------------------------------------- ##
+                   # Figure 6 - Venn Diagram ####
+## -------------------------------------------------------------- ##
+# Look at beta diversity data
+str(beta[1:20])
+
+# Prepare it for use in the venn diagram
+venn.df <- beta %>%
+  # Pivot to long format
+  pivot_longer(
+    -Sample.ID:-Sex,
+    names_to = 'Taxon',
+    values_to = 'Abundance'
+  ) %>%
+  # Group by Stage.Gut and Taxon
+  dplyr::group_by(Stage.Gut, Taxon) %>%
+  # Sum across samples within the aforementioned groups
+  dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
+  # Do some changes to work with the `ggvenn` function/package
+  dplyr::mutate(
+    # Change NA abundance to FALSE
+    Abundance = ifelse(is.na(Abundance),
+                       yes = F, no = Abundance),
+    # Change 0 abundance to FALSE
+    Abundance = ifelse(Abundance == 0,
+                       yes = F, no = Abundance),
+    # Change any non-NA and non-zero numbers to TRUE
+    Abundance = ifelse(Abundance > 0,
+                       yes = T, no = Abundance)
+  ) %>%
+  # Change 0/1 to F/T
+  dplyr::mutate(
+    Abundance = ifelse(Abundance == 0,
+                       yes = FALSE, no = TRUE)
+  ) %>%
+  # Pivot to wide format with Stage.Gut as columns
+  pivot_wider(
+    id_cols = Taxon,
+    names_from = Stage.Gut,
+    values_from = Abundance
+  )
+
+# Check it out again
+str(venn.df)
+
+# Make Venn Diagram
+ggvenn(
+  data = venn.df,
+  columns = c("Adult hindgut", "Adult midgut", "Larval ileum", "Larval paunch"),
+  show_percentage = FALSE
+)
+
+## -------------------------------------------------------------- ##
+                # Figure 7 - Gilliamella spp. ####
+## -------------------------------------------------------------- ##
+# Need to process the beta diversity data again (but differently here)
+gill.df <- beta %>%
+  # Pivot to long format
+  pivot_longer(
+    -Sample.ID:-Sex,
+    names_to = 'Taxon',
+    values_to = 'Abundance'
+  ) %>%
+  # Keep only the genus of interest
+  filter(str_detect(Taxon, 'Gilliamella')) %>%
+  # Sum across samples within Stage.Gut
+  group_by(Stage.Gut) %>%
+  dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
+  # Re-level the Stage.Gut column
+  dplyr::mutate(
+    Stage.Gut = factor(Stage.Gut, levels = stage.gut.lvls)
+  ) %>%
+  as.data.frame()
+
+# Gilliamella plot
+ggplot(gill.df, aes(y = Abundance, x = Stage.Gut,
+                             fill = Stage.Gut, color = 'x')) +
+  geom_bar(stat = 'identity') +
+  scale_fill_manual(values = all.cols) +
+  scale_color_manual(values = 'black') +
+  labs(x = "Life Stage & Gut Region",
+       y = expression(paste(italic("Gilliamella"), " spp. Abundance"))) +
+  pref_theme
+
+# Save it
+ggplot2::ggsave("./Figures/Gilliamella-Figure.tiff",
+                device = 'tiff',
+                width = 4, height = 4,
+                plot = last_plot())
+
 
 # END ####
 
