@@ -573,12 +573,31 @@ venn.df <- beta %>%
 # Check it out again
 str(venn.df)
 
-# Make Venn Diagram
-ggvenn(
-  data = venn.df,
-  columns = c("Adult hindgut", "Adult midgut", "Larval ileum", "Larval paunch"),
-  show_percentage = FALSE
-)
+# Make Venn diagram for adults
+ggvenn(data = venn.df,
+       columns = c("Adult hindgut", "Adult midgut"),
+       fill_color = c('blue', 'light blue'),
+       text_size = 6, set_name_size = 4.5,
+       show_percentage = F)
+
+# Save it
+ggplot2::ggsave("./Figures/Venn-Diagram-ADULT.tiff",
+                device = 'tiff',
+                width = 4, height = 4,
+                plot = last_plot())
+
+# Do the same for larvae
+  ## Plot
+ggvenn(data = venn.df,
+       columns = c("Larval paunch", "Larval ileum", "Larval midgut"),
+       fill_color = c('red', 'orange', 'yellow'),
+       text_size = 5, set_name_size = 4.5,
+       show_percentage = F)
+  ## Saver
+ggplot2::ggsave("./Figures/Venn-Diagram-LARVAE.tiff",
+                device = 'tiff',
+                width = 4, height = 4,
+                plot = last_plot())
 
 ## -------------------------------------------------------------- ##
                 # Figure 7 - Gilliamella spp. ####
