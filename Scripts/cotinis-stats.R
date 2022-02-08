@@ -24,12 +24,13 @@ library(RRPP); library(tidyverse); library(vegan); library(ape)
                 # Data Retrieval & Housekeeping ####
 ## -------------------------------------------------------------- ##
 # Retrieve the relevant datasets
-alpha <- read.csv("./Data/Tidy Data/alpha-diversity-data.csv")
-beta <- read.csv("./Data/Tidy Data/beta-diversity-data.csv")
+alpha <- read.csv("Data/Tidy Data/alpha-diversity-data.csv")
+beta <- read.csv("Data/Tidy Data/beta-diversity-data.csv")
 fams <- read.csv("Data/Tidy Data/family-abun.csv")
 phyla <- read.csv("Data/Tidy Data/phylum-abun.csv")
-wtd.frc.dist <- read.csv("./Data/wtd-unfrc-dist.csv")[-1]
-uwt.frc.dist <- read.csv("./Data/unwtd-unfrc-dist.csv")[-1]
+genera <- read.csv("Data/Tidy Data/genus-abun.csv")
+wtd.frc.dist <- read.csv("Data/wtd-unfrc-dist.csv")[-1]
+uwt.frc.dist <- read.csv("Data/unwtd-unfrc-dist.csv")[-1]
 
 # Look at them to be sure nothing obvious is wrong
 str(alpha)
@@ -236,7 +237,51 @@ anova(lm.rrpp(Abundance ~ Phylum, data = paunch.phyl, iter = 9999))
 anova(lm.rrpp(Abundance ~ Phylum, data = ileum.phyl, iter = 9999))
   ## sig
 
-  
+## -------------------------------------------------------------- ##
+                      # Genus Abundance Tests ####
+## -------------------------------------------------------------- ##
+# Create relevant subsets
+amid.gen <- genera %>%
+  filter(Stage.Gut == "Adult midgut") %>%
+  as.data.frame()
+ahind.gen <- genera %>%
+  filter(Stage.Gut == "Adult hindgut") %>%
+  as.data.frame()
+lmid.gen <- genera %>%
+  filter(Stage.Gut == "Larval midgut") %>%
+  as.data.frame()
+paunch.gen <- genera %>%
+  filter(Stage.Gut == "Larval paunch") %>%
+  as.data.frame()
+ileum.gen <- genera %>%
+  filter(Stage.Gut == "Larval ileum") %>%
+  as.data.frame()
+
+# Among genus abundance differences for:
+
+# NOTE:
+## The below tests crash R, likely because of the number of genera
+length(unique(genera$Genus))
+## Comparisons among 293 different groups are too computationally intensive
+## I've left this bit of code in though for two reasons:
+### 1) transparency of process so that you (future reader) can know what we tried
+### AND (2) in case we can figure out a workaround to continue in this vein
+
+
+# Adult midgut
+#anova(lm.rrpp(Abundance ~ Genus, data = amid.gen, iter = 9999))
+
+# Adult hindgut
+#anova(lm.rrpp(Abundance ~ Genus, data = ahind.gen, iter = 9999))
+
+# Larval midgut
+#anova(lm.rrpp(Abundance ~ Genus, data = lmid.gen, iter = 9999))
+
+# Larval Paunch
+#anova(lm.rrpp(Abundance ~ Genus, data = paunch.gen, iter = 9999))
+
+# Larval ileum
+#anova(lm.rrpp(Abundance ~ Genus, data = ileum.gen, iter = 9999))
 
 # END ####
 
