@@ -571,6 +571,46 @@ write.csv(phyla.abun,
           "./Data/Tidy Data/phylum-abun.csv",
           row.names = F)
 
+## ------------------------------------------- ##
+       # P4-5: Genus-Level Abundance ####
+## ------------------------------------------- ##
+# Examine genera
+sort(unique(tax.data.v5$Genus))
+
+# Create the necessary community dataset
+gen.abun <- comm.data.v3 %>%
+  # Pivot to long format
+  pivot_longer(
+    cols = -Sample.ID:-Sex,
+    names_to = "Taxon",
+    values_to = "Abundance"
+  ) %>%
+  # Bring over all of the columns from the taxonomic data
+  left_join(tax.data.v5, by = "Taxon") %>%
+  # Keep only desired columns (non-specified columns are dropped)
+  dplyr::select(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
+                Genus, Abundance) %>%
+  # Group by needed columns
+  group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex, Genus) %>%
+  # Sum abundance within these groups
+  summarise(
+    Abundance = sum(Abundance, na.rm = T)
+  ) %>%
+  # Ungroup
+  ungroup() %>%
+  # Remove rows without a genus-level ID
+  filter(!is.na(Genus)) %>%
+  # Return df
+  as.data.frame()
+
+# Check what we've created
+str(gen.abun)
+
+# Save it
+write.csv(gen.abun,
+          "./Data/Tidy Data/genus-abun.csv",
+          row.names = F)
+
 ## -------------------------------------------------------------- ##
              # Part 5: Calculate Unifrac Distances ####
 ## -------------------------------------------------------------- ##
