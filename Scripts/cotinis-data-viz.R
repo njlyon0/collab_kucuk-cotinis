@@ -54,18 +54,19 @@ frc.data <- beta %>%
 alpha.larv <- filter(alpha, Lifestage == "larva")
 
 # Retrieve my custom Principal Coordinates Analysis (PCoA) ordination function
-pcoa.5.ord <- function(mod, groupcol, g1, g2, g3, g4, g5,
+pcoa.5.ord <- function(mod, groupcol, title = NA, g1, g2, g3, g4, g5,
                        lntp1 = 1, lntp2 = 1, lntp3 = 1, lntp4 = 1, lntp5 = 1,
                        legcont, legpos = "topleft") {
   ## mod = object returned by ape::pcoa
   ## groupcol = group column in the dataframe that contains those (not the matrix used in vegdist)
+  ## title = title for a given plot
   ## g1 - g5 = how each group appears in your dataframe (in quotes)
   ## lntp1 - 5 = what sort of line each ellipse will be made of (accepts integers between 1 and 6 for diff lines)
   ## legcont = single object for what you want the content of the legend to be
   ## legpos = legend position, either numeric vector of x/y coords or shorthand accepted by "legend" function
   
   # Create plot
-  plot(mod$vectors, display = 'sites', choice = c(1, 2), type = 'none',
+  plot(mod$vectors, display = 'sites', choice = c(1, 2), type = 'none', main = title,
        xlab = paste0("PC1 (", round(mod$values$Relative_eig[1] * 100, digits = 2), "%)"),
        ylab = paste0("PC2 (", round(mod$values$Relative_eig[2] * 100, digits = 2), "%)"))
   ## Probably want the relative eigenvalues (% variation explained per axis) on the plot in an obvious way
