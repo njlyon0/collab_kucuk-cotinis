@@ -134,7 +134,7 @@ pcoa.5.ord(mod = bc.pnts, groupcol = beta$Stage.Gut,
            legpos = "bottomleft")
 
 # Once that looks good save it out using this dev.off bit
-jpeg(file = "./Graphs/PCoA-bray-curtis.jpg")
+tiff(file = "./Graphs/PCoA-bray-curtis.tiff")
 pcoa.5.ord(mod = bc.pnts, groupcol = beta$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
@@ -150,7 +150,7 @@ pcoa.5.ord(mod = jacc.pnts, groupcol = beta$Stage.Gut,
            legpos = "bottomleft")
 
 # Once that looks good save it out using this dev.off bit
-jpeg(file = "./Graphs/PCoA-jaccard.jpg")
+tiff(file = "./Graphs/PCoA-jaccard.tiff")
 pcoa.5.ord(mod = jacc.pnts, groupcol = beta$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
@@ -166,7 +166,7 @@ pcoa.5.ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut,
            legpos = "topright")
 
 # Save the ordination
-jpeg(file = "./Graphs/PCoA-weighted-unifrac.jpg")
+tiff(file = "./Graphs/PCoA-weighted-unifrac.tiff")
 pcoa.5.ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
@@ -182,7 +182,7 @@ pcoa.5.ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
            legpos = "topleft")
 
 # Save the ordination
-jpeg(file = "./Graphs/PCoA-unweighted-unifrac.jpg")
+tiff(file = "./Graphs/PCoA-unweighted-unifrac.tiff")
 pcoa.5.ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
            g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
            g4 = "Adult midgut", g5 = "Adult hindgut",
