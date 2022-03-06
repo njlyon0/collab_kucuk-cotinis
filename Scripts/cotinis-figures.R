@@ -150,8 +150,124 @@ ggplot2::ggsave("./Figures/Alpha-Diversity-Superfigure.tiff",
 ## -------------------------------------------------------------- ##
             # Figure 2 - Beta Diversity Superfigure ####
 ## -------------------------------------------------------------- ##
-# Made in PowerPoint (sorry!)
-  ## Individual graphs within figure found in "cotinis-data-viz.R" script
+# Re-order factor levels for PCoA
+unique(beta$Stage.Gut)
+beta$Stage.Gut <- factor(beta$Stage.Gut, 
+                         levels = c("Larval paunch", "Larval ileum", "Larval midgut",
+                                    "Adult midgut", "Adult hindgut"))
+unique(beta$Stage.Gut)
+
+# Strip out the ID missing from the unifrac data
+frc.data <- beta %>%
+  filter(Sample.ID != "Amid48") %>%
+  as.data.frame()
+
+# Calculate/read in distances
+bc.dist <- vegdist(beta[-c(1:5)], method = 'bray')
+jac.dist <- vegdist(beta[-c(1:5)], method = 'jaccard')
+wtd.frc.dist <- read.csv("./Data/wtd-unfrc-dist.csv")[-1]
+uwt.frc.dist <- read.csv("./Data/unwtd-unfrc-dist.csv")[-1]
+
+# Run a PCoA on all distance matrices
+bc.pnts <- ape::pcoa(bc.dist)
+jacc.pnts <- ape::pcoa(jac.dist)
+wtd.frc.pnts <- ape::pcoa(wtd.frc.dist)
+uwt.frc.pnts <- ape::pcoa(uwt.frc.dist)
+
+# Grab the graphing function we want for this
+pcoa.5.ord <- function(mod, groupcol, title = NA, g1, g2, g3, g4, g5,
+                       lntp1 = 1, lntp2 = 1, lntp3 = 1, lntp4 = 1, lntp5 = 1,
+                       legcont, legpos = "topleft") {
+  ## mod = object returned by ape::pcoa
+  ## groupcol = group column in the dataframe that contains those (not the matrix used in vegdist)
+  ## title = title for a given plot
+  ## g1 - g5 = how each group appears in your dataframe (in quotes)
+  ## lntp1 - 5 = what sort of line each ellipse will be made of (accepts integers between 1 and 6 for diff lines)
+  ## legcont = single object for what you want the content of the legend to be
+  ## legpos = legend position, either numeric vector of x/y coords or shorthand accepted by "legend" function
+  
+  # Create plot
+  plot(mod$vectors, display = 'sites', choice = c(1, 2), type = 'none', main = title,
+       xlab = paste0("PC1 (", round(mod$values$Relative_eig[1] * 100, digits = 2), "%)"),
+       ylab = paste0("PC2 (", round(mod$values$Relative_eig[2] * 100, digits = 2), "%)"))
+  ## Probably want the relative eigenvalues (% variation explained per axis) on the plot in an obvious way
+  
+  # Set colors (easier for you to modify if we set this now and call these objects later)
+  col1 <- "#a50026" # dark red
+  col2 <- "#f46d43" # red
+  col3 <- "#fee090" # yellow-orange
+  col4 <- "#abd9e9" # light blue
+  col5 <- "#4575b4" # blue
+  
+  # Add points for each group with a different color per group
+  points(mod$vectors[groupcol == g1, 1], mod$vectors[groupcol == g1, 2], pch = 21, bg = col1)
+  points(mod$vectors[groupcol == g2, 1], mod$vectors[groupcol == g2, 2], pch = 22, bg = col2)
+  points(mod$vectors[groupcol == g3, 1], mod$vectors[groupcol == g3, 2], pch = 23, bg = col3)
+  points(mod$vectors[groupcol == g4, 1], mod$vectors[groupcol == g4, 2], pch = 24, bg = col4)
+  points(mod$vectors[groupcol == g5, 1], mod$vectors[groupcol == g5, 2], pch = 25, bg = col5)
+  ## As of right now the colors are colorblind safe and each group is also given its own shape
+  
+  # Get a single vector of your manually set line types for the ellipses
+  lntps <- c(lntp1, lntp2, lntp3, lntp4, lntp5)
+  
+  # Ordinate SD ellipses around the centroid
+  vegan::ordiellipse(mod$vectors, groupcol, 
+                     col = c(g1 = col1, g2 = col2, g3 = col3, g4 = col4, g5 = col5),
+                     display = "sites", kind = "sd", lwd = 2, lty = lntps, label = F)
+  
+  # Add legend
+  legend(legpos, legend = legcont, bty = "n", 
+         title = NULL,  cex = 1.15, 
+         pch = c(21, 22, 23, 24, 25),
+         pt.bg = c(col1, col2, col3, col4, col5))
+  
+}
+
+# Create first beta diversity superfigure
+## Tiff format
+tiff(filename = "./Figures/Beta-Diversity-Superfigure-1.tiff",
+     width = 960, height = 480, units = 'px')
+## Plot as two side-by-side graphs
+par(mfrow = c(1, 2))
+## Create first plot
+pcoa.5.ord(mod = bc.pnts, groupcol = beta$Stage.Gut, title = "Bray Curtis",
+           g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
+           g4 = "Adult midgut", g5 = "Adult hindgut",
+           legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+           legpos = "bottomleft")
+## Create second plot
+pcoa.5.ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut, title = "Weighted Unifrac",
+           g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
+           g4 = "Adult midgut", g5 = "Adult hindgut",
+           legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+           legpos = "bottomright")
+## Save it out
+dev.off()
+## Re-set the plotting space
+par(mfrow = c(1, 1))
+
+# Create second beta diversity superfigure
+## Tiff format
+tiff(filename = "./Figures/Beta-Diversity-Superfigure-2.tiff",
+     width = 960, height = 480, units = 'px')
+## Plot as two side-by-side graphs
+par(mfrow = c(1, 2))
+## Create first plot
+pcoa.5.ord(mod = jacc.pnts, groupcol = beta$Stage.Gut, title = "Jaccard",
+           g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
+           g4 = "Adult midgut", g5 = "Adult hindgut",
+           legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+           legpos = "bottomleft")
+## Create second plot
+pcoa.5.ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut, title = "Unweighted Unifrac",
+           g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
+           g4 = "Adult midgut", g5 = "Adult hindgut",
+           legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+           legpos = "topleft")
+## Save it out
+dev.off()
+## Re-set the plotting space
+par(mfrow = c(1, 1))
 
 ## -------------------------------------------------------------- ##
             # Figure 3 - Abundance Superfigure ####
