@@ -14,17 +14,18 @@ getwd() # should end in ".../Kucuk-CotinisCollab"
 myWD <- getwd()
 
 # Necessary libraries
-library(tidyverse); library(vegan); library(ape)
-library(Rmisc); library(cowplot); library(ggvenn)
+# devtools::install_github("NJLyon-Projects/helpR")
+library(tidyverse); library(vegan); library(ape); library(helpR)
+library(cowplot); library(ggvenn)
 
 ## -------------------------------------------------------------- ##
               # Data Retrieval & Housekeeping ####
 ## -------------------------------------------------------------- ##
 # Retrieve the relevant datasets
-alpha <- read.csv("./Data/Tidy Data/alpha-diversity-data.csv")
-fams <- read.csv("Data/Tidy Data/family-abun.csv")
-phyla <- read.csv("Data/Tidy Data/phylum-abun.csv")
-beta <- read.csv("./Data/Tidy Data/beta-diversity-data.csv")
+alpha <- read.csv(file.path("Data", "Tidy Data", "alpha-diversity-data.csv"))
+beta <- read.csv(file.path("Data", "Tidy Data", "beta-diversity-data.csv"))
+fams <- read.csv(file.path("Data", "Tidy Data", "family-abun.csv"))
+phyla <- read.csv(file.path("Data", "Tidy Data", "phylum-abun.csv"))
 
 # Look at them to be sure nothing obvious is wrong
 str(alpha)
@@ -32,7 +33,8 @@ str(fams)
 str(phyla)
 
 # We also want to customize some plotting aesthetics for our ggplot plots that we can do here
-all.cols <- c("Larval paunch" = "#a50026", "Larval ileum" = "#f46d43", "Larval midgut" = "#fee090",
+all.cols <- c("Larval paunch" = "#a50026", "Larval ileum" = "#f46d43",
+              "Larval midgut" = "#fee090",
               "Adult midgut" = "#abd9e9", "Adult hindgut" = "#4575b4")
 sex.shps <- c("male" = 24, "female" = 25, "larva"= 21)
 dodge <- position_dodge(width = 0.5)
@@ -47,44 +49,43 @@ pref_theme <- theme_classic() +
 ## -------------------------------------------------------------- ##
           # Figure 1 - Alpha Diversity Superfigure ####
 ## -------------------------------------------------------------- ##
-# Summarize each of the needed response variables
-chao <- summarySE(data = alpha, measurevar = "Chao1", groupvars = c("Stage.Gut"))
-simp <- summarySE(data = alpha, measurevar = "Simpson", groupvars = c("Stage.Gut"))
-ace <- summarySE(data = alpha, measurevar = "ACE", groupvars = c("Stage.Gut"))
-shan <- summarySE(data = alpha, measurevar = "Shannon", groupvars = c("Stage.Gut"))
+# Summarize the response variables
+alpha_plotdf <- alpha %>%
+  group_by(Stage.Gut) %>%
+  dplyr::summarise(
+    shan = mean(Shannon, na.rm = T),
+    shan_se = ( sd(Shannon, na.rm = T) / n() ),
+    simp = mean(Simpson, na.rm = T),
+    simp_se = ( sd(Simpson, na.rm = T) / n() ),
+    ace = mean(ACE, na.rm = T),
+    ace_se = ( sd(ACE, na.rm = T) / n() ),
+    chao = mean(Chao1, na.rm = T),
+    chao_se = ( sd(Chao1, na.rm = T) / n() )) %>%
+  # Re-level stage.gut factor order
+  dplyr::mutate(Stage.Gut = factor(Stage.Gut,
+                                   levels = c("Adult hindgut", "Adult midgut", "Larval midgut",
+                                              "Larval ileum", "Larval paunch")))
 
-# Re-level the factor column
-  ## Pref factor order
-stage.gut.lvls <- c("Adult hindgut", "Adult midgut", "Larval midgut",
-                    "Larval ileum", "Larval paunch")
-  ## Actual re-leveling
-chao$Stage.Gut <- factor(chao$Stage.Gut, levels = stage.gut.lvls)
-simp$Stage.Gut <- factor(simp$Stage.Gut, levels = stage.gut.lvls)
-ace$Stage.Gut <- factor(ace$Stage.Gut, levels = stage.gut.lvls)
-shan$Stage.Gut <- factor(shan$Stage.Gut, levels = stage.gut.lvls)
-
-# Chao 1 Diversity
-chao.plt <- ggplot(chao, aes(y = Chao1, x = Stage.Gut,
-                             fill = Stage.Gut, color = 'x')) +
+# Shannon diversity bar graph
+(shan.plt <- ggplot(alpha_plotdf, aes(y = shan, x = Stage.Gut,
+                         fill = Stage.Gut, color = 'x')) +
   geom_bar(stat = 'identity') +
-  geom_errorbar(aes(ymax = Chao1 + se, ymin = Chao1 - se), width = 0.2) +
-  geom_text(label = "ab", x = 0.7, y = 180, size = 5) +
-  geom_text(label = "a", x = 1.7, y =  100, size = 5) +
-  geom_text(label = "bc", x = 2.7, y = 740, size = 5) +
-  geom_text(label = "b", x = 3.7, y =  590, size = 5) +
-  geom_text(label = "c", x = 4.7, y =  975, size = 5) +
+  geom_errorbar(aes(ymax = shan + shan_se, ymin = shan - shan_se), width = 0.2) +
+  geom_text(label = "b", x = 0.7, y =  3.8, size = 5) +
+  geom_text(label = "a", x = 1.7, y =  2.3, size = 5) +
+  geom_text(label = "c", x = 2.7, y =  6.15, size = 5) +
+  geom_text(label = "bc", x = 3.7, y = 4.75, size = 5) +
+  geom_text(label = "c", x = 4.7, y =  5.45, size = 5) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
-  labs(x = "Life Stage & Gut Region", y = "Chao1 Index") +
-  pref_theme + theme(axis.ticks.x = element_blank(),
-                     axis.text.x = element_blank(),
-                     axis.title.x = element_blank())
+  labs(x = "Life Stage & Gut Region", y = "Shannon Diversity") +
+  pref_theme + theme(legend.position = 'none'))
 
 # Simpson Diversity
-simp.plt <- ggplot(simp, aes(y = Simpson, x = Stage.Gut,
-                             fill = Stage.Gut, color = 'x')) +
+(simp.plt <- ggplot(alpha_plotdf, aes(y = simp, x = Stage.Gut,
+                         fill = Stage.Gut, color = 'x')) +
   geom_bar(stat = 'identity') +
-  geom_errorbar(aes(ymax = Simpson + se, ymin = Simpson - se), width = 0.2) +
+  geom_errorbar(aes(ymax = simp + simp_se, ymin = simp - simp_se), width = 0.2) +
   geom_text(label = "b", x = 0.7, y =  0.99, size = 5) +
   geom_text(label = "a", x = 1.7, y =  0.82, size = 5) +
   geom_text(label = "b", x = 2.7, y =  1.05, size = 5) +
@@ -94,50 +95,41 @@ simp.plt <- ggplot(simp, aes(y = Simpson, x = Stage.Gut,
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "Simpson Diversity") +
-  pref_theme
+  pref_theme + theme(legend.position = 'none'))
 
 # ACE Diversity
-ace.plt <- ggplot(ace, aes(y = ACE, x = Stage.Gut,
-                           fill = Stage.Gut, color = 'x')) +
+(ace.plt <- ggplot(alpha_plotdf, aes(y = ace, x = Stage.Gut,
+                         fill = Stage.Gut, color = 'x')) +
   geom_bar(stat = 'identity') +
-  geom_errorbar(aes(ymax = ACE + se, ymin = ACE - se), width = 0.2) +
+  geom_errorbar(aes(ymax = ace + ace_se, ymin = ace - ace_se), width = 0.2) +
   geom_text(label = "ab", x = 0.7, y = 180, size = 5) +
   geom_text(label = "a", x = 1.7, y =  100, size = 5) +
-  geom_text(label = "bc", x = 2.7, y = 750, size = 5) +
-  geom_text(label = "b", x = 3.7, y =  600, size = 5) +
-  geom_text(label = "c", x = 4.7, y =  985, size = 5) +
+  geom_text(label = "bc", x = 2.7, y = 740, size = 5) +
+  geom_text(label = "b", x = 3.7, y =  590, size = 5) +
+  geom_text(label = "c", x = 4.7, y =  975, size = 5) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "ACE") +
-  pref_theme + theme(axis.ticks.x = element_blank(),
-                     axis.text.x = element_blank(),
-                     axis.title.x = element_blank())
+  pref_theme + theme(legend.position = 'none'))
 
-shan.plt <- ggplot(shan, aes(y = Shannon, x = Stage.Gut,
-                             fill = Stage.Gut, color = 'x')) +
+# Chao 1 Diversity
+(chao.plt <- ggplot(alpha_plotdf, aes(y = chao, x = Stage.Gut,
+                         fill = Stage.Gut, color = 'x')) +
   geom_bar(stat = 'identity') +
-  geom_errorbar(aes(ymax = Shannon + se, ymin = Shannon - se), width = 0.2) +
-  geom_text(label = "b", x = 0.7, y =  3.8, size = 5) +
-  geom_text(label = "a", x = 1.7, y =  2.3, size = 5) +
-  geom_text(label = "c", x = 2.7, y =  6.15, size = 5) +
-  geom_text(label = "bc", x = 3.7, y = 4.75, size = 5) +
-  geom_text(label = "c", x = 4.7, y =  5.45, size = 5) +
+  geom_errorbar(aes(ymax = chao + chao_se, ymin = chao - chao_se), width = 0.2) +
+  geom_text(label = "ab", x = 0.7, y = 180, size = 5) +
+  geom_text(label = "a", x = 1.7, y =  100, size = 5) +
+  geom_text(label = "bc", x = 2.7, y = 740, size = 5) +
+  geom_text(label = "b", x = 3.7, y =  590, size = 5) +
+  geom_text(label = "c", x = 4.7, y =  975, size = 5) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
-  labs(x = "Life Stage & Gut Region", y = "Shannon Diversity") +
-  pref_theme + theme(legend.position = 'none')
-
-# Examine your handiwork
-chao.plt
-simp.plt
-ace.plt
-shan.plt
+  labs(x = "Life Stage & Gut Region", y = "Chao1 Index") +
+  pref_theme + theme(legend.position = 'none'))
 
 # Create the superfigure
-plot_grid(chao.plt, ace.plt,
-          simp.plt, shan.plt,
-          align = 'v',
-          rel_heights = c(0.7, 1),
+plot_grid(chao.plt, ace.plt,  simp.plt, shan.plt,
+          align = 'v', rel_heights = c(0.7, 1),
           ncol = 2, nrow = 2, 
           labels = c("A", "B", "C", "D"))
 
@@ -165,8 +157,8 @@ frc.data <- beta %>%
 # Calculate/read in distances
 bc.dist <- vegdist(beta[-c(1:5)], method = 'bray')
 jac.dist <- vegdist(beta[-c(1:5)], method = 'jaccard')
-wtd.frc.dist <- read.csv("./Data/wtd-unfrc-dist.csv")[-1]
-uwt.frc.dist <- read.csv("./Data/unwtd-unfrc-dist.csv")[-1]
+wtd.frc.dist <- read.csv(file.path("Data", "wtd-unfrc-dist.csv"))[-1]
+uwt.frc.dist <- read.csv(file.path("Data", "unwtd-unfrc-dist.csv"))[-1]
 
 # Run a PCoA on all distance matrices
 bc.pnts <- ape::pcoa(bc.dist)
@@ -174,100 +166,28 @@ jacc.pnts <- ape::pcoa(jac.dist)
 wtd.frc.pnts <- ape::pcoa(wtd.frc.dist)
 uwt.frc.pnts <- ape::pcoa(uwt.frc.dist)
 
-# Grab the graphing function we want for this
-pcoa.5.ord <- function(mod, groupcol, title = NA, g1, g2, g3, g4, g5,
-                       lntp1 = 1, lntp2 = 1, lntp3 = 1, lntp4 = 1, lntp5 = 1,
-                       legcont, legpos = "topleft") {
-  ## mod = object returned by ape::pcoa
-  ## groupcol = group column in the dataframe that contains those (not the matrix used in vegdist)
-  ## title = title for a given plot
-  ## g1 - g5 = how each group appears in your dataframe (in quotes)
-  ## lntp1 - 5 = what sort of line each ellipse will be made of (accepts integers between 1 and 6 for diff lines)
-  ## legcont = single object for what you want the content of the legend to be
-  ## legpos = legend position, either numeric vector of x/y coords or shorthand accepted by "legend" function
-  
-  # Create plot
-  plot(mod$vectors, display = 'sites', choice = c(1, 2), type = 'none', main = title,
-       xlab = paste0("PC1 (", round(mod$values$Relative_eig[1] * 100, digits = 2), "%)"),
-       ylab = paste0("PC2 (", round(mod$values$Relative_eig[2] * 100, digits = 2), "%)"))
-  ## Probably want the relative eigenvalues (% variation explained per axis) on the plot in an obvious way
-  
-  # Set colors (easier for you to modify if we set this now and call these objects later)
-  col1 <- "#a50026" # dark red
-  col2 <- "#f46d43" # red
-  col3 <- "#fee090" # yellow-orange
-  col4 <- "#abd9e9" # light blue
-  col5 <- "#4575b4" # blue
-  
-  # Add points for each group with a different color per group
-  points(mod$vectors[groupcol == g1, 1], mod$vectors[groupcol == g1, 2], pch = 21, bg = col1)
-  points(mod$vectors[groupcol == g2, 1], mod$vectors[groupcol == g2, 2], pch = 22, bg = col2)
-  points(mod$vectors[groupcol == g3, 1], mod$vectors[groupcol == g3, 2], pch = 23, bg = col3)
-  points(mod$vectors[groupcol == g4, 1], mod$vectors[groupcol == g4, 2], pch = 24, bg = col4)
-  points(mod$vectors[groupcol == g5, 1], mod$vectors[groupcol == g5, 2], pch = 25, bg = col5)
-  ## As of right now the colors are colorblind safe and each group is also given its own shape
-  
-  # Get a single vector of your manually set line types for the ellipses
-  lntps <- c(lntp1, lntp2, lntp3, lntp4, lntp5)
-  
-  # Ordinate SD ellipses around the centroid
-  vegan::ordiellipse(mod$vectors, groupcol, 
-                     col = c(g1 = col1, g2 = col2, g3 = col3, g4 = col4, g5 = col5),
-                     display = "sites", kind = "sd", lwd = 2, lty = lntps, label = F)
-  
-  # Add legend
-  legend(legpos, legend = legcont, bty = "n", 
-         title = NULL,  cex = 1.15, 
-         pch = c(21, 22, 23, 24, 25),
-         pt.bg = c(col1, col2, col3, col4, col5))
-  
-}
+# No unique ordination combinations are used as figures
+## Only a single ordination gets to be a figure in the main text of the paper
 
-# Create first beta diversity superfigure
-## Tiff format
-tiff(filename = "./Figures/Beta-Diversity-Superfigure-1.tiff",
-     width = 960, height = 480, units = 'px')
-## Plot as two side-by-side graphs
-par(mfrow = c(1, 2))
-## Create first plot
-pcoa.5.ord(mod = bc.pnts, groupcol = beta$Stage.Gut, title = "Bray Curtis",
-           g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
-           g4 = "Adult midgut", g5 = "Adult hindgut",
-           legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
-           legpos = "bottomleft")
-## Create second plot
-pcoa.5.ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut, title = "Weighted Unifrac",
-           g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
-           g4 = "Adult midgut", g5 = "Adult hindgut",
-           legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
-           legpos = "bottomright")
-## Save it out
-dev.off()
-## Re-set the plotting space
-par(mfrow = c(1, 1))
+## Bray Curtis
+helpR::pcoa_ord(mod = bc.pnts, groupcol = beta$Stage.Gut,
+                leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+                colors = all.cols, leg_pos = "bottomleft")
 
-# Create second beta diversity superfigure
-## Tiff format
-tiff(filename = "./Figures/Beta-Diversity-Superfigure-2.tiff",
-     width = 960, height = 480, units = 'px')
-## Plot as two side-by-side graphs
-par(mfrow = c(1, 2))
-## Create first plot
-pcoa.5.ord(mod = jacc.pnts, groupcol = beta$Stage.Gut, title = "Jaccard",
-           g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
-           g4 = "Adult midgut", g5 = "Adult hindgut",
-           legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
-           legpos = "bottomleft")
-## Create second plot
-pcoa.5.ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut, title = "Unweighted Unifrac",
-           g1 = "Larval paunch", g2 = "Larval ileum", g3 = "Larval midgut",
-           g4 = "Adult midgut", g5 = "Adult hindgut",
-           legcont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
-           legpos = "topleft")
-## Save it out
-dev.off()
-## Re-set the plotting space
-par(mfrow = c(1, 1))
+## Jaccard
+helpR::pcoa_ord(mod = jacc.pnts, groupcol = beta$Stage.Gut,
+                leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+                colors = all.cols, leg_pos = "bottomleft")
+
+## Weighted Unifrac
+helpR::pcoa_ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut,
+                leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+                colors = all.cols, leg_pos = "topright")
+
+## Unweighted Unifrac
+helpR::pcoa_ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
+                leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+                colors = all.cols, leg_pos = "topleft")
 
 ## -------------------------------------------------------------- ##
             # Figure 3 - Abundance Superfigure ####
@@ -316,7 +236,7 @@ head(phy.global)
 head(fam.global)
 
 # Graph phylum level abundance
-phy.plt <- ggplot(phy.global, aes(y = Abundance,
+(phy.plt <- ggplot(phy.global, aes(y = Abundance,
                                   x = reorder(Phylum, -Abundance),
                                   fill = 'x', color = 'x')) +
   geom_bar(stat = 'identity') +
@@ -324,10 +244,10 @@ phy.plt <- ggplot(phy.global, aes(y = Abundance,
   scale_color_manual(values = 'black') +
   labs(x = "Phylum", y = "Abundance") +
   pref_theme + theme(legend.position = 'none',
-                     axis.text.x = element_text(size = 8))
+                     axis.text.x = element_text(size = 8)))
 
 # Graph family-level abundance
-fam.plt <- ggplot(fam.global, aes(y = Abundance,
+(fam.plt <- ggplot(fam.global, aes(y = Abundance,
                                   x = reorder(Family, -Abundance),
                                   fill = 'x', color = 'x')) +
   geom_bar(stat = 'identity') +
@@ -335,11 +255,7 @@ fam.plt <- ggplot(fam.global, aes(y = Abundance,
   scale_color_manual(values = 'black') +
   labs(x = "Family", y = "Abundance") +
   pref_theme + theme(legend.position = 'none',
-                     axis.text.x = element_text(size = 8))
-
-# Examine both
-phy.plt
-fam.plt
+                     axis.text.x = element_text(size = 8)))
 
 # Create combination graph
 plot_grid(phy.plt, fam.plt, ncol = 2, nrow = 1, labels = c("A", "B"))
@@ -469,10 +385,8 @@ ggplot(phyla.v2, aes(x = Sample.ID, y = relativeAbun,
         legend.key = element_rect(color = "black"))
   
 # Save this!
-ggplot2::ggsave("./Figures/Relative-Abundance-Superfigure.tiff",
-                device = 'tiff',
-                width = 11, height = 5,
-                plot = last_plot())
+ggplot2::ggsave(file.path("Figures", "Relative-Abundance-Superfigure.tiff"),
+                width = 11, height = 5, plot = last_plot())
 
 ## -------------------------------------------------------------- ##
    # Figure 5 - Within Life/Gut Phyla Abundance Superfigure ####
@@ -490,8 +404,7 @@ amid.phyl <- phyla %>%
   dplyr::mutate(
     Phylum = ifelse(relativeAbun < new.abun.thresh,
                     yes = paste0("Phyla < ", new.abun.thresh, "% Total"),
-                    no = Phylum)
-  ) %>%
+                    no = Phylum) ) %>%
   filter(Stage.Gut == "Adult midgut") %>%
   group_by(Stage.Gut, Phylum) %>%
   summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
@@ -501,8 +414,7 @@ ahind.phyl <- phyla %>%
   dplyr::mutate(
     Phylum = ifelse(relativeAbun < new.abun.thresh,
                     yes = paste0("Phyla < ", new.abun.thresh, "% Total"),
-                    no = Phylum)
-  ) %>%
+                    no = Phylum) ) %>%
   filter(Stage.Gut == "Adult hindgut") %>%
   group_by(Stage.Gut, Phylum) %>%
   summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
@@ -512,8 +424,7 @@ lmid.phyl <- phyla %>%
   dplyr::mutate(
     Phylum = ifelse(relativeAbun < new.abun.thresh,
                     yes = paste0("Phyla < ", new.abun.thresh, "% Total"),
-                    no = Phylum)
-  ) %>%
+                    no = Phylum) ) %>%
   filter(Stage.Gut == "Larval midgut") %>%
   group_by(Stage.Gut, Phylum) %>%
   summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
@@ -523,8 +434,7 @@ ileum.phyl <- phyla %>%
   dplyr::mutate(
     Phylum = ifelse(relativeAbun < new.abun.thresh,
                     yes = paste0("Phyla < ", new.abun.thresh, "% Total"),
-                    no = Phylum)
-  ) %>%
+                    no = Phylum) ) %>%
   filter(Stage.Gut == "Larval ileum") %>%
   group_by(Stage.Gut, Phylum) %>%
   summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
@@ -534,8 +444,7 @@ paunch.phyl <- phyla %>%
   dplyr::mutate(
     Phylum = ifelse(relativeAbun < new.abun.thresh,
                     yes = paste0("Phyla < ", new.abun.thresh, "% Total"),
-                    no = Phylum)
-  ) %>%
+                    no = Phylum) ) %>%
   filter(Stage.Gut == "Larval paunch") %>%
   group_by(Stage.Gut, Phylum) %>%
   summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
@@ -546,7 +455,7 @@ paunch.phyl <- phyla %>%
 ## -------------------------------------------- ##
 # Make component graphs of phylum-level abundance within each life stage/gut bit
 ## Adult midgut
-amid <- ggplot(amid.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+(amid <- ggplot(amid.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
                               fill = Stage.Gut, color = 'x')) +
   geom_bar(stat = 'identity') +
   geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
@@ -559,10 +468,10 @@ amid <- ggplot(amid.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
                      axis.text.x = element_text(size = 8),
                      axis.text.y = element_text(size = 9),
                      axis.title.y = element_text(size = 12),
-                     axis.title.x = element_blank())
+                     axis.title.x = element_blank()) )
 
 ## Adult hindgut
-ahind <- ggplot(ahind.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+(ahind <- ggplot(ahind.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
                                 fill = Stage.Gut, color = 'x')) +
   geom_bar(stat = 'identity') +
   geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
@@ -575,10 +484,10 @@ ahind <- ggplot(ahind.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
                      axis.text.x = element_text(size = 8),
                      axis.text.y = element_text(size = 9),
                      axis.title.x = element_blank(),
-                     axis.title.y = element_blank())
+                     axis.title.y = element_blank()) )
 
 ## Larval midgut
-lmid <- ggplot(lmid.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+(lmid <- ggplot(lmid.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
                               fill = Stage.Gut, color = 'x')) +
   geom_bar(stat = 'identity') +
   geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
@@ -590,10 +499,10 @@ lmid <- ggplot(lmid.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
   pref_theme + theme(legend.position = 'none',
                      axis.text.x = element_text(size = 8),
                      axis.text.y = element_text(size = 9),
-                     axis.title = element_text(size = 12))
+                     axis.title = element_text(size = 12)) )
 
 ## Larval ileum
-lile <- ggplot(ileum.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+(lile <- ggplot(ileum.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
                                fill = Stage.Gut, color = 'x')) +
   geom_bar(stat = 'identity') +
   geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
@@ -607,10 +516,10 @@ lile <- ggplot(ileum.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
                      axis.text.x = element_text(size = 8),
                      axis.text.y = element_text(size = 9),
                      axis.title = element_text(size = 12),
-                     axis.title.y = element_blank())
+                     axis.title.y = element_blank()) )
 
 ## Larval paunch
-lpau <- ggplot(paunch.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+(lpau <- ggplot(paunch.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
                                 fill = Stage.Gut, color = 'x')) +
   geom_bar(stat = 'identity') +
   geom_errorbar(aes(ymax = Abundance + se, ymin = Abundance - se), width = 0.2) +
@@ -623,14 +532,7 @@ lpau <- ggplot(paunch.phyl, aes(y = Abundance, x = reorder(Phylum, -Abundance),
                      axis.text.x = element_text(size = 8),
                      axis.text.y = element_text(size = 9),
                      axis.title = element_text(size = 12),
-                     axis.title.y = element_blank())
-
-# Examine each
-amid
-ahind
-lmid
-lile
-lpau
+                     axis.title.y = element_blank()) )
 
 # Assemble into larger composite graph
 plot_grid(amid, ahind, NA, lmid, lile, lpau,
@@ -638,11 +540,8 @@ plot_grid(amid, ahind, NA, lmid, lile, lpau,
           labels = c("A", "B", NA, "C", "D", "E"))
 
 # Option A:
-ggplot2::ggsave("./Figures/Relative-Abundance-Subsets-Superfigure.tiff",
-                device = 'tiff',
-                width = 11, height = 6.5,
-                plot = last_plot())
-
+ggplot2::ggsave(file.path("Figures", "Relative-Abundance-Subsets-Superfigure.tiff"),
+                width = 11, height = 6.5, plot = last_plot())
 
 ## -------------------------------------------------------------- ##
                    # Figure 6 - Venn Diagram ####
@@ -653,67 +552,54 @@ str(beta[1:20])
 # Prepare it for use in the venn diagram
 venn.df <- beta %>%
   # Pivot to long format
-  pivot_longer(
-    -Sample.ID:-Sex,
-    names_to = 'Taxon',
-    values_to = 'Abundance'
-  ) %>%
+  pivot_longer(-Sample.ID:-Sex,
+               names_to = 'Taxon',
+               values_to = 'Abundance') %>%
   # Group by Stage.Gut and Taxon
   dplyr::group_by(Stage.Gut, Taxon) %>%
   # Sum across samples within the aforementioned groups
   dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
   # Do some changes to work with the `ggvenn` function/package
   dplyr::mutate(
-    # Change NA abundance to FALSE
-    Abundance = ifelse(is.na(Abundance),
-                       yes = F, no = Abundance),
-    # Change 0 abundance to FALSE
-    Abundance = ifelse(Abundance == 0,
-                       yes = F, no = Abundance),
-    # Change any non-NA and non-zero numbers to TRUE
-    Abundance = ifelse(Abundance > 0,
-                       yes = T, no = Abundance)
-  ) %>%
-  # Change 0/1 to F/T
-  dplyr::mutate(
-    Abundance = ifelse(Abundance == 0,
-                       yes = FALSE, no = TRUE)
-  ) %>%
+    Abundance = dplyr::case_when(
+      is.na(Abundance) ~ FALSE,
+      Abundance == 0 ~ FALSE,
+      TRUE ~ TRUE)) %>%
   # Pivot to wide format with Stage.Gut as columns
-  pivot_wider(
-    id_cols = Taxon,
-    names_from = Stage.Gut,
-    values_from = Abundance
-  )
+  pivot_wider(id_cols = Taxon,
+              names_from = Stage.Gut,
+              values_from = Abundance )
 
 # Check it out again
 str(venn.df)
 
-# Make Venn diagram for adults
-ggvenn(data = venn.df,
+# Make Venn diagram for each and save them separately
+## Adults
+(adult_ggvenn <- ggvenn(data = venn.df,
        columns = c("Adult hindgut", "Adult midgut"),
        fill_color = c('blue', 'light blue'),
        text_size = 6, set_name_size = 4.5,
-       show_percentage = F)
+       show_percentage = F) )
+ggplot2::ggsave(file.path("Graphs", "Venn-Diagram-ADULT.tiff"),
+                width = 4, height = 4, plot = last_plot())
 
-# Save it
-ggplot2::ggsave("./Figures/Venn-Diagram-ADULT.tiff",
-                device = 'tiff',
-                width = 4, height = 4,
-                plot = last_plot())
+## Larvae
+(larva_ggvenn <- ggvenn(data = venn.df,
+        columns = c("Larval paunch", "Larval ileum", "Larval midgut"),
+        fill_color = c('red', 'orange', 'yellow'),
+        text_size = 4, set_name_size = 4.5,
+        show_percentage = F) )
+ggplot2::ggsave(file.path("Graphs", "Venn-Diagram-LARVAE.tiff"),
+                width = 4, height = 4,  plot = last_plot())
 
-# Do the same for larvae
-  ## Plot
-ggvenn(data = venn.df,
-       columns = c("Larval paunch", "Larval ileum", "Larval midgut"),
-       fill_color = c('red', 'orange', 'yellow'),
-       text_size = 5, set_name_size = 4.5,
-       show_percentage = F)
-  ## Saver
-ggplot2::ggsave("./Figures/Venn-Diagram-LARVAE.tiff",
-                device = 'tiff',
-                width = 4, height = 4,
-                plot = last_plot())
+
+# Make and save a composite figure
+plot_grid(adult_ggvenn, larva_ggvenn,
+          ncol = 1, nrow = 2, labels = c("A", "B"))
+
+# Option A:
+ggplot2::ggsave(file.path("Figures", "Venn-Diagram-Superfigure.tiff"),
+                width = 5.5, height = 6, plot = last_plot())
 
 ## -------------------------------------------------------------- ##
                 # Figure 7 - Gilliamella spp. ####
@@ -721,20 +607,18 @@ ggplot2::ggsave("./Figures/Venn-Diagram-LARVAE.tiff",
 # Need to process the beta diversity data again (but differently here)
 gill.df <- beta %>%
   # Pivot to long format
-  pivot_longer(
-    -Sample.ID:-Sex,
+  pivot_longer( -Sample.ID:-Sex,
     names_to = 'Taxon',
-    values_to = 'Abundance'
-  ) %>%
+    values_to = 'Abundance') %>%
   # Keep only the genus of interest
   filter(str_detect(Taxon, 'Gilliamella')) %>%
   # Sum across samples within Stage.Gut
   group_by(Stage.Gut) %>%
   dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
   # Re-level the Stage.Gut column
-  dplyr::mutate(
-    Stage.Gut = factor(Stage.Gut, levels = stage.gut.lvls)
-  ) %>%
+  dplyr::mutate(Stage.Gut = factor(Stage.Gut,
+                                   levels = c("Larval paunch", "Larval ileum", "Larval midgut",
+                                                         "Adult midgut", "Adult hindgut"))) %>%
   as.data.frame()
 
 # Gilliamella plot
@@ -748,10 +632,8 @@ ggplot(gill.df, aes(y = Abundance, x = Stage.Gut,
   pref_theme
 
 # Save it
-ggplot2::ggsave("./Figures/Gilliamella-Figure.tiff",
-                device = 'tiff',
-                width = 4, height = 4,
-                plot = last_plot())
+ggplot2::ggsave(file.path("Figures", "Gilliamella-Figure.tiff"),
+                width = 4, height = 4, plot = last_plot())
 
 
 # END ####
