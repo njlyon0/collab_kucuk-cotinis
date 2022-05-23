@@ -45,7 +45,11 @@ pref_theme <- theme_classic() +
 ## So let's for loop through this
 
 # Create vector of desired taxa
-desired_taxa <- c("Gilliamella")
+desired_taxa <- c("Gilliamella", "Bacillus", "Turicibacter", "Geobacter",
+                  "Alistipes", "Tannerella", "Bradyrhizobium", "Enterococcus",
+                  "Diplosphaera", "Pelospora", "Methanobrevibacter", 
+                  "Ruminococcaceae", "Dysgonomonadaceae", "Rikenellaceae",
+                  "Desulfovibrionaceae", "Lachnospiraceae")
 
 # Loop through that vector to summarize, plot, and export for each
 for(k in 1:length(desired_taxa)){
@@ -70,23 +74,27 @@ for(k in 1:length(desired_taxa)){
     as.data.frame()
   
   # Assemble y-axis label
-  y_axis_label <- paste(desired_taxa[k], "spp. Abundance")
+  if(str_detect(string = special_taxon, pattern = "aceae") == FALSE){
+    y_axis_label <- paste(special_taxon, "spp. Abundance") }
+  if(str_detect(string = special_taxon, pattern = "aceae") == TRUE){
+    y_axis_label <- paste(special_taxon, "Abundance") }
   
   # Plot that data
   sub_plot <- ggplot(sub_df, aes(y = Abundance, x = Stage.Gut, fill = Stage.Gut, color = 'x')) +
     geom_bar(stat = 'identity') +
     scale_fill_manual(values = all.cols) +
     scale_color_manual(values = 'black') +
-    labs(x = "Life Stage & Gut Region",
-         # y = expression(paste(italic(desired_taxa[k]), " spp. Abundance"))) +
-         # y = expression(paste(desired_taxa[k], " spp. Abundance"))) +
-    y = y_axis_label) +
-  
-  pref_theme
+    labs(x = "Life Stage & Gut Region", y = y_axis_label) +
+    pref_theme
   
   # Save that plot
-  ggplot2::ggsave(file.path("Figures", paste0(special_taxon, "-Figure.tiff")),
+  ggplot2::ggsave(file.path("Special Taxa Graphs",
+                            paste0(special_taxon, "-Figure.tiff")),
                   width = 4, height = 4, plot = sub_plot)
+  
+  # Alert the user which graph was produced
+  message(special_taxon, " graphic produced. ", length(desired_taxa) - k, " remaining." )
+  
 }
 
 
