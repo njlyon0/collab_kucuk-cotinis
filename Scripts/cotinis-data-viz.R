@@ -35,6 +35,10 @@ str(fams)
 str(phyla)
 str(wtd.frc.dist)
 
+# Create needed export directories
+dir.create("Graphs", showWarnings = F)
+dir.create("Figures", showWarnings = F)
+
 # Calculate the Bray Curtis and Jaccard distances
 bc.dist <- vegdist(beta[-c(1:5)], method = 'bray')
 jac.dist <- vegdist(beta[-c(1:5)], method = 'jaccard')

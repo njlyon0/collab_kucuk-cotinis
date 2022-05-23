@@ -24,6 +24,9 @@ library(cowplot); library(ggvenn)
 # Retrieve the relevant datasets
 beta <- read.csv(file.path("Data", "Tidy Data", "beta-diversity-data.csv"))
 
+# Create directory to save these to
+dir.create("Special Taxa Graphs", showWarnings = F)
+
 # We also want to customize some plotting aesthetics for our ggplot plots that we can do here
 all.cols <- c("Larval paunch" = "#a50026", "Larval ileum" = "#f46d43",
               "Larval midgut" = "#fee090",
@@ -96,6 +99,5 @@ for(k in 1:length(desired_taxa)){
   message(special_taxon, " graphic produced. ", length(desired_taxa) - k, " remaining." )
   
 }
-
 
 # End ---
