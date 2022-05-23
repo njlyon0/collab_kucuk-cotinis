@@ -601,40 +601,6 @@ plot_grid(adult_ggvenn, larva_ggvenn,
 ggplot2::ggsave(file.path("Figures", "Venn-Diagram-Superfigure.tiff"),
                 width = 5.5, height = 6, plot = last_plot())
 
-## -------------------------------------------------------------- ##
-                # Figure 7 - Gilliamella spp. ####
-## -------------------------------------------------------------- ##
-# Need to process the beta diversity data again (but differently here)
-gill.df <- beta %>%
-  # Pivot to long format
-  pivot_longer( -Sample.ID:-Sex,
-    names_to = 'Taxon',
-    values_to = 'Abundance') %>%
-  # Keep only the genus of interest
-  filter(str_detect(Taxon, 'Gilliamella')) %>%
-  # Sum across samples within Stage.Gut
-  group_by(Stage.Gut) %>%
-  dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
-  # Re-level the Stage.Gut column
-  dplyr::mutate(Stage.Gut = factor(Stage.Gut,
-                                   levels = c("Larval paunch", "Larval ileum", "Larval midgut",
-                                                         "Adult midgut", "Adult hindgut"))) %>%
-  as.data.frame()
-
-# Gilliamella plot
-ggplot(gill.df, aes(y = Abundance, x = Stage.Gut,
-                             fill = Stage.Gut, color = 'x')) +
-  geom_bar(stat = 'identity') +
-  scale_fill_manual(values = all.cols) +
-  scale_color_manual(values = 'black') +
-  labs(x = "Life Stage & Gut Region",
-       y = expression(paste(italic("Gilliamella"), " spp. Abundance"))) +
-  pref_theme
-
-# Save it
-ggplot2::ggsave(file.path("Figures", "Gilliamella-Figure.tiff"),
-                width = 4, height = 4, plot = last_plot())
-
 
 # END ####
 
