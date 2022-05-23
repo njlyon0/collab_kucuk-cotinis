@@ -32,6 +32,10 @@ str(alpha)
 str(fams)
 str(phyla)
 
+# Create needed export directories
+dir.create("Graphs", showWarnings = F)
+dir.create("Figures", showWarnings = F)
+
 # We also want to customize some plotting aesthetics for our ggplot plots that we can do here
 all.cols <- c("Larval paunch" = "#a50026", "Larval ileum" = "#f46d43",
               "Larval midgut" = "#fee090",
@@ -407,7 +411,11 @@ amid.phyl <- phyla %>%
                     no = Phylum) ) %>%
   filter(Stage.Gut == "Adult midgut") %>%
   group_by(Stage.Gut, Phylum) %>%
-  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  dplyr::summarise(
+    abun = mean(Abundance, na.rm = T),
+    se = sd(Abundance, na.rm = T) / n()
+  ) %>%
+  dplyr::rename(Abundance = abun) %>%
   as.data.frame()
 
 ahind.phyl <- phyla %>%
@@ -417,7 +425,11 @@ ahind.phyl <- phyla %>%
                     no = Phylum) ) %>%
   filter(Stage.Gut == "Adult hindgut") %>%
   group_by(Stage.Gut, Phylum) %>%
-  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  dplyr::summarise(
+    abun = mean(Abundance, na.rm = T),
+    se = sd(Abundance, na.rm = T) / n()
+  ) %>%
+  dplyr::rename(Abundance = abun) %>%
   as.data.frame()
 
 lmid.phyl <- phyla %>%
@@ -427,7 +439,11 @@ lmid.phyl <- phyla %>%
                     no = Phylum) ) %>%
   filter(Stage.Gut == "Larval midgut") %>%
   group_by(Stage.Gut, Phylum) %>%
-  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  dplyr::summarise(
+    abun = mean(Abundance, na.rm = T),
+    se = sd(Abundance, na.rm = T) / n()
+  ) %>%
+  dplyr::rename(Abundance = abun) %>%
   as.data.frame()
 
 ileum.phyl <- phyla %>%
@@ -437,7 +453,11 @@ ileum.phyl <- phyla %>%
                     no = Phylum) ) %>%
   filter(Stage.Gut == "Larval ileum") %>%
   group_by(Stage.Gut, Phylum) %>%
-  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  dplyr::summarise(
+    abun = mean(Abundance, na.rm = T),
+    se = sd(Abundance, na.rm = T) / n()
+  ) %>%
+  dplyr::rename(Abundance = abun) %>%
   as.data.frame()
 
 paunch.phyl <- phyla %>%
@@ -447,7 +467,11 @@ paunch.phyl <- phyla %>%
                     no = Phylum) ) %>%
   filter(Stage.Gut == "Larval paunch") %>%
   group_by(Stage.Gut, Phylum) %>%
-  summarySE(measurevar = "Abundance", groupvars = c("Stage.Gut", "Phylum")) %>%
+  dplyr::summarise(
+    abun = mean(Abundance, na.rm = T),
+    se = sd(Abundance, na.rm = T) / n()
+  ) %>%
+  dplyr::rename(Abundance = abun) %>%
   as.data.frame()
 
 ## -------------------------------------------- ##
