@@ -194,80 +194,160 @@ helpR::pcoa_ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
                 colors = all.cols, leg_pos = "topleft")
 
 ## -------------------------------------------------------------- ##
-            # Figure 3 - Abundance Superfigure ####
+                # Relative Abundance - Global ####
 ## -------------------------------------------------------------- ##
 # Look at the phylum- & family-level abundance
 head(phyla)
 head(fams)
 
-# Calculate truly global abundance for both
-phy.total.abun <- sum(phyla$Abundance, na.rm = T)
-fam.total.abun <- sum(fams$Abundance, na.rm = T)
-
 # What is the threshold of relative abundance we want?
 threshold <- 0.05
 
-# What is the relative abundance of that threshold?
-phy.thresh <- phy.total.abun * threshold
-fam.thresh <- fam.total.abun * threshold
+# Identify global abundance totals
+phy.global.abun <- sum(phyla$Abundance, na.rm = T)
+fam.global.abun <- sum(fams$Abundance, na.rm = T)
 
-# Get a global version of phylum-level abundance
-  ## (i.e., irrespective of SampleID)
-phy.global <- phyla %>%
+# Now identify abundance of over/under threshold percent
+phy.global.thresh <- phy.global.abun * threshold
+fam.global.thresh <- fam.global.abun * threshold
+
+# Slim down the phyla dataframe
+phy.global.df <- phyla %>%
   # Remove un-needed columns
   dplyr::select(Domain, Phylum, Abundance) %>%
   # Group by phylum
   group_by(Phylum) %>%
   # Sum to get one instance of each
-  dplyr::summarise(
-    Abundance = sum(Abundance, na.rm = T)
-  ) %>%
-  # Remove any taxa under the threshold value
-  filter(Abundance > phy.thresh) %>%
+  dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
+  # Identify which are above/below threshold
+  dplyr::mutate(Abundant_Phyla = dplyr::case_when(
+    Abundance > phy.global.thresh ~ Phylum,
+    TRUE ~ "Phyla < 5% Total")) %>%
+  # Sum through any taxa under the threshold value
+  group_by(Abundant_Phyla) %>%
+  dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
+  # Rename the phyla column more simply
+  dplyr::rename(Phylum = Abundant_Phyla) %>%
+  # Calculate relativeAbundance
+  dplyr::mutate(relativeabun = (Abundance / phy.global.abun) * 100) %>%
   # Return a dataframe
   as.data.frame()
 
 # Do the same for family-level abundance
-fam.global <- fams %>%
+fam.global.df <- fams %>%
   dplyr::select(Domain, Family, Abundance) %>%
   group_by(Family) %>%
   dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
-  filter(Abundance > fam.thresh) %>%
+  dplyr::mutate(Abundant_Families = dplyr::case_when(
+    Abundance > fam.global.thresh ~ Family,
+    TRUE ~ "Families < 5% Total")) %>%
+  group_by(Abundant_Families) %>%
+  dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
+  dplyr::rename(Family = Abundant_Families) %>%
+  dplyr::mutate(relativeabun = (Abundance / fam.global.abun) * 100) %>%
   as.data.frame()
 
 # Look at what that produced
-head(phy.global)
-head(fam.global)
+head(phy.global.df)
+head(fam.global.df)
 
+# Combine them
+taxa.global.df <- phy.global.df %>%
+  dplyr::bind_rows(fam.global.df) %>%
+  tidyr::pivot_longer(cols = c(Family, Phylum),
+                      names_to = "Taxonomic_Level",
+                      values_to = "ID") %>%
+  dplyr::filter(!is.na(ID))
+## Check it out
+head(taxa.global.df)
+
+# Get a custom color vector
+phy.global.colors <- c("Phyla < 5% Total" = "white",# Phyla = blues
+                   "Bacteroidetes" = "#023858", "Firmicutes" = "#3690c0", 
+                   "Proteobacteria" = "#a6bddb")
+fam.global.colors <- c("Families < 5% Total" = "#ffffe5", # Family = oranges
+                       "Desulfovibrionaceae" = "#662506", "Dysgonomonadaceae" = "#cc4c02",
+                       "Lachnospiraceae" = "#ec7014", "Rikenellaceae" = "#fec44f",
+                       "Ruminococcaceae" = "#fee391")
+global.colors <- c("Bacteroidetes" = "#023858", "Firmicutes" = "#3690c0",
+                   "Proteobacteria" = "#a6bddb", "Phyla < 5% Total" = "white",
+                   "Desulfovibrionaceae" = "#662506", "Dysgonomonadaceae" = "#cc4c02",
+                   "Lachnospiraceae" = "#ec7014", "Rikenellaceae" = "#fec44f",
+                   "Ruminococcaceae" = "#fee391", "Families < 5% Total" = "#ffffe5")
 # Graph phylum level abundance
-(phy.plt <- ggplot(phy.global, aes(y = Abundance,
-                                  x = reorder(Phylum, -Abundance),
-                                  fill = 'x', color = 'x')) +
-  geom_bar(stat = 'identity') +
-  scale_fill_manual(values = "#980043") +
+(phy.global.plt <- ggplot(phy.global.df, aes(x = 'x', y = relativeabun,
+                           fill = reorder(Phylum, relativeabun),
+                           color = 'x')) +
+  geom_bar(stat = 'identity', position = 'stack') +
   scale_color_manual(values = 'black') +
-  labs(x = "Phylum", y = "Abundance") +
-  pref_theme + theme(legend.position = 'none',
-                     axis.text.x = element_text(size = 8)))
+  labs(x = 'Phyla', y = "Relative Abundance (%)") +
+  scale_fill_manual(values = phy.global.colors) +
+  # Remaining aesthetics things
+  pref_theme + guides(color = 'none') +
+  theme(legend.position = 'right',
+        axis.text.x = element_blank(),
+        legend.key = element_rect(color = "black")))
 
-# Graph family-level abundance
-(fam.plt <- ggplot(fam.global, aes(y = Abundance,
-                                  x = reorder(Family, -Abundance),
-                                  fill = 'x', color = 'x')) +
-  geom_bar(stat = 'identity') +
-  scale_fill_manual(values = "#e7298a") +
-  scale_color_manual(values = 'black') +
-  labs(x = "Family", y = "Abundance") +
-  pref_theme + theme(legend.position = 'none',
-                     axis.text.x = element_text(size = 8)))
+# Do the same for family
+(fam.global.plt <- ggplot(fam.global.df, aes(x = 'x', y = relativeabun,
+                                             fill = reorder(Family, relativeabun),
+                                             color = 'x')) +
+    geom_bar(stat = 'identity', position = 'stack') +
+    scale_color_manual(values = 'black') +
+    labs(x = 'Families', y = "Relative Abundance (%)") +
+    scale_fill_manual(values = fam.global.colors) +
+    # Remaining aesthetics things
+    pref_theme + guides(color = 'none') +
+    theme(legend.position = 'right',
+          axis.text.x = element_blank(),
+          axis.title.y = element_blank(),
+          legend.key = element_rect(color = "black")))
 
 # Create combination graph
-plot_grid(phy.plt, fam.plt, ncol = 2, nrow = 1, labels = c("A", "B"))
+plot_grid(phy.global.plt, fam.global.plt, ncol = 2, nrow = 1, labels = c("A", "B"))
 
 # Save it
-ggplot2::ggsave("./Figures/Abundance-Superfigure.tiff",
-                device = 'tiff',
-                width = 5, height = 4,
+ggplot2::ggsave(file = file.path("Figures", "Abundance-Superfigure_verA.tiff"),
+                device = 'tiff', width = 6, height = 5,
+                plot = last_plot())
+
+# Version B
+ggplot(taxa.global.df, aes(x = Taxonomic_Level, y = relativeabun,
+                     fill = reorder(ID, relativeabun),
+                     color = 'x')) +
+  geom_bar(stat = 'identity', position = 'stack') +
+  scale_color_manual(values = 'black') +
+  labs(x = 'Taxonomic Level', y = "Relative Abundance (%)") +
+  scale_fill_manual(values = global.colors) +
+  # Remaining aesthetics things
+  pref_theme + guides(color = 'none') +
+  theme(legend.position = 'right',
+        axis.text.x = element_text(angle = 25, hjust = 1),
+        legend.key = element_rect(color = "black"))
+
+# Save it
+ggplot2::ggsave(file = file.path("Figures", "Abundance-Superfigure_verB.tiff"),
+                device = 'tiff', width = 4, height = 4,
+                plot = last_plot())
+
+# Version C
+ggplot(taxa.global.df, aes(x = 'x', y = relativeabun,
+                           fill = reorder(ID, relativeabun),
+                           color = 'x')) +
+  geom_bar(stat = 'identity', position = 'stack') +
+  scale_color_manual(values = 'black') +
+  labs(x = 'Taxonomic Level', y = "Relative Abundance (%)") +
+  facet_grid(. ~ Taxonomic_Level) +
+  scale_fill_manual(values = global.colors) +
+  # Remaining aesthetics things
+  pref_theme + guides(color = 'none') +
+  theme(legend.position = 'right',
+        axis.text.x = element_blank(),
+        legend.key = element_rect(color = "black"))
+
+# Save it
+ggplot2::ggsave(file = file.path("Figures", "Abundance-Superfigure_verC.tiff"),
+                device = 'tiff', width = 4, height = 4,
                 plot = last_plot())
 
 ## -------------------------------------------------------------- ##
