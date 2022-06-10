@@ -14,7 +14,7 @@ getwd() # should end in ".../Kucuk-CotinisCollab"
 myWD <- getwd()
 
 # Necessary libraries
-# devtools::install_github("NJLyon-Projects/helpR")
+# devtools::install_github("njlyon0/helpR")
 library(tidyverse); library(vegan); library(ape); library(helpR)
 library(cowplot); library(ggvenn)
 
