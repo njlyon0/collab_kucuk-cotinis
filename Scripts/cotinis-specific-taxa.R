@@ -30,6 +30,7 @@ dir.create("Special Taxa Graphs", showWarnings = F)
 # We also want to make a standard ggplot2 theme
 pref_theme <- theme_classic() +
   theme(legend.title = element_blank(),
+        legend.position = 'none',
         axis.title = element_text(size = 15),
         axis.text.y = element_text(size = 11),
         axis.text.x = element_text(size = 13, angle = 35, hjust = 1),
@@ -56,9 +57,12 @@ desired_taxa <- c("Gilliamella", "Bacillus", "Turicibacter", "Geobacter",
                   "Ruminococcaceae", "Dysgonomonadaceae", "Rikenellaceae",
                   "Desulfovibrionaceae", "Lachnospiraceae")
 
+# Suppress how chatty `dplyr::summarise()` wants to be
+options(dplyr.summarise.inform = FALSE)
+
 # Loop through that vector to summarize, plot, and export for each
-# for(k in 1:length(desired_taxa)){
-for(k in 1){
+for(k in 1:length(desired_taxa)){
+# for(k in 1){ #retained for ease of modifying loop in future
   
   # Identify taxon
   special_taxon <- desired_taxa[k]
@@ -83,34 +87,28 @@ for(k in 1){
     dplyr::group_by(Stage.Gut) %>%
     dplyr::mutate(
       total = sum(Abundance, na.rm = T),
-      percAbun = (Abundance / total) * 100,
-      # Create column to fill by
-      Gut_Taxon_raw = ifelse(Taxon_Simp == "Other",
-                             yes = "Other",
-                             no = paste(Stage.Gut, Taxon_Simp, sep = "_")),
-      Gut_Taxon = factor(Gut_Taxon_raw,
-                         levels = c("Other",
-                                    paste0(gut_levels, "_", special_taxon)))
-      ) %>%
+      percAbun = (Abundance / total) * 100) %>%
+    # Drop the 'Other' taxa
+    dplyr::filter(Taxon_Simp != "Other") %>%
     # Return dataframe
     as.data.frame()
   
  # Assemble y-axis label
   if(str_detect(string = special_taxon, pattern = "aceae") == FALSE){
-    y_axis_label <- paste(special_taxon, "spp. Relative Abundance (%)") }
+    y_axis_label <- paste(special_taxon, "spp. Relative Abun. (%)") }
   if(str_detect(string = special_taxon, pattern = "aceae") == TRUE){
-    y_axis_label <- paste(special_taxon, "Relative Abundance (%)") }
+    y_axis_label <- paste(special_taxon, "Relative Abun. (%)") }
 
   # Plot that subset of the data
   sub_plot <- ggplot(sub_df, aes(y = percAbun, x = Stage.Gut,
-                                 fill = Gut_Taxon, color = 'x')) +
+                                 fill = Stage.Gut, color = 'x')) +
     geom_bar(stat = 'identity') +
     scale_fill_manual(values = color_vec,
                       labels = c("Other Taxa", special_taxon)) +
     scale_color_manual(values = 'black') +
     labs(x = "Life Stage & Gut Region", y = y_axis_label) +
-    pref_theme +
-    guides(color = 'none')
+    ylim(0, 100) +
+    pref_theme
   
   # Save that plot
   ggplot2::ggsave(file.path("Special Taxa Graphs",
