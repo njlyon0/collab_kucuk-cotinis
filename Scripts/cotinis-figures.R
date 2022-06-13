@@ -251,16 +251,6 @@ fam.global.df <- fams %>%
 head(phy.global.df)
 head(fam.global.df)
 
-# Combine them
-taxa.global.df <- phy.global.df %>%
-  dplyr::bind_rows(fam.global.df) %>%
-  tidyr::pivot_longer(cols = c(Family, Phylum),
-                      names_to = "Taxonomic_Level",
-                      values_to = "ID") %>%
-  dplyr::filter(!is.na(ID))
-## Check it out
-head(taxa.global.df)
-
 # Get a custom color vector
 phy.global.colors <- c("Phyla < 5% Total" = "white",# Phyla = blues
                    "Bacteroidetes" = "#023858", "Firmicutes" = "#3690c0", 
@@ -269,11 +259,7 @@ fam.global.colors <- c("Families < 5% Total" = "#ffffe5", # Family = oranges
                        "Desulfovibrionaceae" = "#662506", "Dysgonomonadaceae" = "#cc4c02",
                        "Lachnospiraceae" = "#ec7014", "Rikenellaceae" = "#fec44f",
                        "Ruminococcaceae" = "#fee391")
-global.colors <- c("Bacteroidetes" = "#023858", "Firmicutes" = "#3690c0",
-                   "Proteobacteria" = "#a6bddb", "Phyla < 5% Total" = "white",
-                   "Desulfovibrionaceae" = "#662506", "Dysgonomonadaceae" = "#cc4c02",
-                   "Lachnospiraceae" = "#ec7014", "Rikenellaceae" = "#fec44f",
-                   "Ruminococcaceae" = "#fee391", "Families < 5% Total" = "#ffffe5")
+
 # Graph phylum level abundance
 (phy.global.plt <- ggplot(phy.global.df, aes(x = 'x', y = relativeabun,
                            fill = reorder(Phylum, relativeabun),
@@ -307,47 +293,8 @@ global.colors <- c("Bacteroidetes" = "#023858", "Firmicutes" = "#3690c0",
 plot_grid(phy.global.plt, fam.global.plt, ncol = 2, nrow = 1, labels = c("A", "B"))
 
 # Save it
-ggplot2::ggsave(file = file.path("Figures", "Abundance-Superfigure_verA.tiff"),
+ggplot2::ggsave(file = file.path("Figures", "Abundance-Superfigure.tiff"),
                 device = 'tiff', width = 6, height = 5,
-                plot = last_plot())
-
-# Version B
-ggplot(taxa.global.df, aes(x = Taxonomic_Level, y = relativeabun,
-                     fill = reorder(ID, relativeabun),
-                     color = 'x')) +
-  geom_bar(stat = 'identity', position = 'stack') +
-  scale_color_manual(values = 'black') +
-  labs(x = 'Taxonomic Level', y = "Relative Abundance (%)") +
-  scale_fill_manual(values = global.colors) +
-  # Remaining aesthetics things
-  pref_theme + guides(color = 'none') +
-  theme(legend.position = 'right',
-        axis.text.x = element_text(angle = 25, hjust = 1),
-        legend.key = element_rect(color = "black"))
-
-# Save it
-ggplot2::ggsave(file = file.path("Figures", "Abundance-Superfigure_verB.tiff"),
-                device = 'tiff', width = 4, height = 4,
-                plot = last_plot())
-
-# Version C
-ggplot(taxa.global.df, aes(x = 'x', y = relativeabun,
-                           fill = reorder(ID, relativeabun),
-                           color = 'x')) +
-  geom_bar(stat = 'identity', position = 'stack') +
-  scale_color_manual(values = 'black') +
-  labs(x = 'Taxonomic Level', y = "Relative Abundance (%)") +
-  facet_grid(. ~ Taxonomic_Level) +
-  scale_fill_manual(values = global.colors) +
-  # Remaining aesthetics things
-  pref_theme + guides(color = 'none') +
-  theme(legend.position = 'right',
-        axis.text.x = element_blank(),
-        legend.key = element_rect(color = "black"))
-
-# Save it
-ggplot2::ggsave(file = file.path("Figures", "Abundance-Superfigure_verC.tiff"),
-                device = 'tiff', width = 4, height = 4,
                 plot = last_plot())
 
 ## -------------------------------------------------------------- ##
