@@ -60,6 +60,9 @@ desired_taxa <- c("Gilliamella", "Bacillus", "Turicibacter", "Geobacter",
 # Suppress how chatty `dplyr::summarise()` wants to be
 options(dplyr.summarise.inform = FALSE)
 
+# Create an empty list for storing plots
+plot_list <- list()
+
 # Loop through that vector to summarize, plot, and export for each
 for(k in 1:length(desired_taxa)){
 # for(k in 1){ #retained for ease of modifying loop in future
@@ -95,9 +98,9 @@ for(k in 1:length(desired_taxa)){
   
  # Assemble y-axis label
   if(str_detect(string = special_taxon, pattern = "aceae") == FALSE){
-    y_axis_label <- paste(special_taxon, "spp. Relative Abun. (%)") }
+    y_axis_label <- paste(special_taxon, "spp. (%)") }
   if(str_detect(string = special_taxon, pattern = "aceae") == TRUE){
-    y_axis_label <- paste(special_taxon, "Relative Abun. (%)") }
+    y_axis_label <- paste(special_taxon, "(%)") }
 
   # Plot that subset of the data
   sub_plot <- ggplot(sub_df, aes(y = percAbun, x = Stage.Gut,
@@ -110,14 +113,38 @@ for(k in 1:length(desired_taxa)){
     ylim(0, 100) +
     pref_theme
   
+  # Remove x-axis labels and ticks for all but what will be the bottom row
+  if(k < 13){
+    sub_plot <- sub_plot + theme(axis.title.x = element_blank(),
+                                 axis.text.x = element_blank())
+  }
+  
   # Save that plot
   ggplot2::ggsave(file.path("Special Taxa Graphs",
                             paste0(special_taxon, "-Figure.tiff")),
                   width = 4, height = 5, plot = sub_plot)
   
+  # Also add each plot to a list before continuing
+  plot_list[[k]] <- sub_plot
+  
   # Alert the user which graph was produced
   message(special_taxon, " graphic produced. ", length(desired_taxa) - k, " remaining." )
   
 }
+
+## -------------------------------------------------------------- ##
+                # Combination Figure Creation ####
+## -------------------------------------------------------------- ##
+# Now we want to make a single grid of all these graphs
+length(plot_list)
+
+# Let's make the figure
+cowplot::plot_grid(plotlist = plot_list, nrow = 4, ncol = 4,
+                   labels = 'AUTO', label_x = 0.2)
+
+# And save that
+ggplot2::ggsave(file.path("Figures",
+                          "Special-Taxa-Superfigure.tiff"),
+                width = 12, height = 12, plot = last_plot())
 
 # End ---
