@@ -9,14 +9,9 @@
 # Clear environment (always better to start with tabula rasa)
 rm(list = ls())
 
-# Set working directory
-getwd() # should end in ".../Kucuk-Cotinis-Collab"
-myWD <- getwd()
-
 # Necessary libraries
-# devtools::install_github("njlyon0/helpR")
-library(tidyverse); library(vegan); library(ape); library(helpR)
-library(cowplot); library(ggvenn)
+# install.packages("librarian")
+librarian::shelf(tidyverse, vegan, ape, cowplot)
 
 ## -------------------------------------------------------------- ##
                 # Data Retrieval & Housekeeping ####
@@ -53,12 +48,12 @@ color_vec <- c("#a50026", "#f46d43", "#fee090", "#abd9e9", "#4575b4")
 # Create vector of desired taxa
 desired_taxa <- c("Gilliamella", "Bacillus", "Turicibacter", "Geobacter",
                   "Alistipes", "Tannerella", "Bradyrhizobium", "Enterococcus",
-                  "Diplosphaera", "Pelospora", "Methanobrevibacter", 
+                  "Diplosphaera", "Pelospora", "Methanobrevibacter",
                   "Ruminococcaceae", "Dysgonomonadaceae", "Rikenellaceae",
                   "Desulfovibrionaceae", "Lachnospiraceae")
 
 # Suppress how chatty `dplyr::summarise()` wants to be
-options(dplyr.summarise.inform = FALSE)
+options(dplyr.summarise.inform = F)
 
 # Create an empty list for storing plots
 plot_list <- list()
@@ -66,10 +61,10 @@ plot_list <- list()
 # Loop through that vector to summarize, plot, and export for each
 for(k in 1:length(desired_taxa)){
 # for(k in 1){ #retained for ease of modifying loop in future
-  
+
   # Identify taxon
   special_taxon <- desired_taxa[k]
-  
+
   # Summarize the dataframe as needed
   sub_df <- beta %>%
     # Pivot to long format
@@ -95,7 +90,7 @@ for(k in 1:length(desired_taxa)){
     dplyr::filter(Taxon_Simp != "Other") %>%
     # Return dataframe
     as.data.frame()
-  
+
  # Assemble y-axis label
   if(str_detect(string = special_taxon, pattern = "aceae") == FALSE){
     y_axis_label <- paste(special_taxon, "spp. (%)") }
@@ -112,24 +107,24 @@ for(k in 1:length(desired_taxa)){
     labs(x = "Life Stage & Gut Region", y = y_axis_label) +
     ylim(0, 100) +
     pref_theme
-  
+
   # Remove x-axis labels and ticks for all but what will be the bottom row
   if(k < 13){
     sub_plot <- sub_plot + theme(axis.title.x = element_blank(),
                                  axis.text.x = element_blank())
   }
-  
+
   # Save that plot
   ggplot2::ggsave(file.path("Special Taxa Graphs",
                             paste0(special_taxon, "-Figure.tiff")),
                   width = 4, height = 5, plot = sub_plot)
-  
+
   # Also add each plot to a list before continuing
   plot_list[[k]] <- sub_plot
-  
+
   # Alert the user which graph was produced
   message(special_taxon, " graphic produced. ", length(desired_taxa) - k, " remaining." )
-  
+
 }
 
 ## -------------------------------------------------------------- ##
@@ -143,8 +138,7 @@ cowplot::plot_grid(plotlist = plot_list, nrow = 4, ncol = 4,
                    labels = 'AUTO', label_x = 0.2)
 
 # And save that
-ggplot2::ggsave(file.path("Figures",
-                          "Special-Taxa-Superfigure.tiff"),
+ggplot2::ggsave(file.path("Figures", "Special-Taxa-Superfigure.tiff"),
                 width = 12, height = 12, plot = last_plot())
 
 # End ---

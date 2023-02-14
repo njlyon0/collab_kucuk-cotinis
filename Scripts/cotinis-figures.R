@@ -9,14 +9,9 @@
 # Clear environment (always better to start with tabula rasa)
 rm(list = ls())
 
-# Set working directory
-getwd() # should end in ".../Kucuk-CotinisCollab"
-myWD <- getwd()
-
 # Necessary libraries
-# devtools::install_github("njlyon0/helpR")
-library(tidyverse); library(vegan); library(ape); library(helpR)
-library(cowplot); library(ggvenn)
+# install.packages("librarian")
+librarian::shelf(tidyverse, vegan, psych, ape, cowplot, supportR, ggvenn)
 
 ## -------------------------------------------------------------- ##
               # Data Retrieval & Housekeeping ####
@@ -47,7 +42,7 @@ pref_theme <- theme_classic() +
         legend.position = 'none',
         axis.title = element_text(size = 15),
         axis.text = element_text(size = 13),
-        legend.background = element_rect(fill = alpha('black', 0)),
+        legend.background = element_blank(),
         axis.text.x = element_text(angle = 35, hjust = 1))
 
 ## -------------------------------------------------------------- ##
@@ -58,13 +53,13 @@ alpha_plotdf <- alpha %>%
   group_by(Stage.Gut) %>%
   dplyr::summarise(
     shan = mean(Shannon, na.rm = T),
-    shan_se = ( sd(Shannon, na.rm = T) / n() ),
+    shan_se = ( sd(Shannon, na.rm = T) / sqrt(dplyr::n()) ),
     simp = mean(Simpson, na.rm = T),
-    simp_se = ( sd(Simpson, na.rm = T) / n() ),
+    simp_se = ( sd(Simpson, na.rm = T) / sqrt(dplyr::n()) ),
     ace = mean(ACE, na.rm = T),
-    ace_se = ( sd(ACE, na.rm = T) / n() ),
+    ace_se = ( sd(ACE, na.rm = T) / sqrt(dplyr::n()) ),
     chao = mean(Chao1, na.rm = T),
-    chao_se = ( sd(Chao1, na.rm = T) / n() )) %>%
+    chao_se = ( sd(Chao1, na.rm = T) / sqrt(dplyr::n()) )) %>%
   # Re-level stage.gut factor order
   dplyr::mutate(Stage.Gut = factor(Stage.Gut,
                                    levels = c("Adult hindgut", "Adult midgut", "Larval midgut",
@@ -108,9 +103,9 @@ alpha_plotdf <- alpha %>%
   geom_errorbar(aes(ymax = ace + ace_se, ymin = ace - ace_se), width = 0.2) +
   geom_text(label = "ab", x = 0.7, y = 180, size = 5) +
   geom_text(label = "a", x = 1.7, y =  100, size = 5) +
-  geom_text(label = "bc", x = 2.7, y = 740, size = 5) +
-  geom_text(label = "b", x = 3.7, y =  590, size = 5) +
-  geom_text(label = "c", x = 4.7, y =  975, size = 5) +
+  geom_text(label = "bc", x = 2.7, y = 750, size = 5) +
+  geom_text(label = "b", x = 3.7, y =  600, size = 5) +
+  geom_text(label = "c", x = 4.7, y =  985, size = 5) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "ACE") +
@@ -123,22 +118,21 @@ alpha_plotdf <- alpha %>%
   geom_errorbar(aes(ymax = chao + chao_se, ymin = chao - chao_se), width = 0.2) +
   geom_text(label = "ab", x = 0.7, y = 180, size = 5) +
   geom_text(label = "a", x = 1.7, y =  100, size = 5) +
-  geom_text(label = "bc", x = 2.7, y = 740, size = 5) +
-  geom_text(label = "b", x = 3.7, y =  590, size = 5) +
-  geom_text(label = "c", x = 4.7, y =  975, size = 5) +
+  geom_text(label = "bc", x = 2.7, y = 750, size = 5) +
+  geom_text(label = "b", x = 3.7, y =  600, size = 5) +
+  geom_text(label = "c", x = 4.7, y =  985, size = 5) +
   scale_fill_manual(values = all.cols) +
   scale_color_manual(values = 'black') +
   labs(x = "Life Stage & Gut Region", y = "Chao1 Index") +
   pref_theme + theme(legend.position = 'none'))
 
 # Create the superfigure
-plot_grid(chao.plt, ace.plt,  simp.plt, shan.plt,
-          align = 'v', rel_heights = c(0.7, 1),
-          ncol = 2, nrow = 2, 
-          labels = c("A", "B", "C", "D"))
+cowplot::plot_grid(chao.plt, ace.plt,  simp.plt, shan.plt,
+                   align = 'v', rel_heights = c(0.7, 1),
+                   ncol = 2, nrow = 2, labels = "AUTO")
 
 # Save it
-ggplot2::ggsave("./Figures/Alpha-Diversity-Superfigure.tiff",
+ggplot2::ggsave(file.path("Figures", "Alpha-Diversity-Superfigure.tiff"),
                 device = 'tiff',
                 width = 7, height = 7,
                 plot = last_plot())
@@ -148,7 +142,7 @@ ggplot2::ggsave("./Figures/Alpha-Diversity-Superfigure.tiff",
 ## -------------------------------------------------------------- ##
 # Re-order factor levels for PCoA
 unique(beta$Stage.Gut)
-beta$Stage.Gut <- factor(beta$Stage.Gut, 
+beta$Stage.Gut <- factor(beta$Stage.Gut,
                          levels = c("Larval paunch", "Larval ileum", "Larval midgut",
                                     "Adult midgut", "Adult hindgut"))
 unique(beta$Stage.Gut)
@@ -174,24 +168,24 @@ uwt.frc.pnts <- ape::pcoa(uwt.frc.dist)
 ## Only a single ordination gets to be a figure in the main text of the paper
 
 ## Bray Curtis
-helpR::pcoa_ord(mod = bc.pnts, groupcol = beta$Stage.Gut,
-                leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
-                colors = all.cols, leg_pos = "bottomleft")
+supportR::pcoa_ord(mod = bc.pnts, groupcol = beta$Stage.Gut,
+                   leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+                   colors = all.cols, leg_pos = "bottomleft")
 
 ## Jaccard
-helpR::pcoa_ord(mod = jacc.pnts, groupcol = beta$Stage.Gut,
-                leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
-                colors = all.cols, leg_pos = "bottomleft")
+supportR::pcoa_ord(mod = jacc.pnts, groupcol = beta$Stage.Gut,
+                   leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+                   colors = all.cols, leg_pos = "bottomleft")
 
 ## Weighted Unifrac
-helpR::pcoa_ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut,
-                leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
-                colors = all.cols, leg_pos = "topright")
+supportR::pcoa_ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut,
+                   leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+                   colors = all.cols, leg_pos = "topright")
 
 ## Unweighted Unifrac
-helpR::pcoa_ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
-                leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
-                colors = all.cols, leg_pos = "topleft")
+supportR::pcoa_ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
+                   leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
+                   colors = all.cols, leg_pos = "topleft")
 
 ## -------------------------------------------------------------- ##
                 # Relative Abundance - Global ####
@@ -253,7 +247,7 @@ head(fam.global.df)
 
 # Get a custom color vector
 phy.global.colors <- c("Phyla < 5% Total" = "white",# Phyla = blues
-                   "Bacteroidetes" = "#023858", "Firmicutes" = "#3690c0", 
+                   "Bacteroidetes" = "#023858", "Firmicutes" = "#3690c0",
                    "Proteobacteria" = "#a6bddb")
 fam.global.colors <- c("Families < 5% Total" = "#ffffe5", # Family = oranges
                        "Desulfovibrionaceae" = "#662506", "Dysgonomonadaceae" = "#cc4c02",
@@ -290,7 +284,8 @@ fam.global.colors <- c("Families < 5% Total" = "#ffffe5", # Family = oranges
           legend.key = element_rect(color = "black")))
 
 # Create combination graph
-plot_grid(phy.global.plt, fam.global.plt, ncol = 2, nrow = 1, labels = c("A", "B"))
+cowplot::plot_grid(phy.global.plt, fam.global.plt,
+                   ncol = 2, nrow = 1, labels = "AUTO")
 
 # Save it
 ggplot2::ggsave(file = file.path("Figures", "Abundance-Superfigure.tiff"),
@@ -322,24 +317,18 @@ fams.v2 <- fams %>%
     # Change the family to "other" if it's less than the cutoff
     Family = ifelse(relativeAbun < abun.thresh,
                     yes = paste0("Family < ", abun.thresh, "% Total"),
-                    no = Family)
-    ) %>%
-  # Then, within sample,
+                    no = Family)) %>%
+  # Then, within sample sum through the relative abundances
   group_by(Sample.ID, Family) %>%
-  # Sum through the relative abundances
-  dplyr::summarise(
-    relativeAbun = sum(relativeAbun, na.rm = T)
-  ) %>%
+  dplyr::summarise(relativeAbun = sum(relativeAbun, na.rm = T)) %>%
   as.data.frame()
 
 # Do the same for phylum
 phyla.v2 <- phyla %>%
   dplyr::select(Sample.ID, Phylum, relativeAbun) %>%
-  dplyr::mutate(
-    Phylum = ifelse(relativeAbun < abun.thresh,
-                    yes = paste0("Phyla < ", abun.thresh, "% Total"),
-                    no = Phylum)
-  ) %>%
+  dplyr::mutate(Phylum = ifelse(relativeAbun < abun.thresh,
+                                yes = paste0("Phyla < ", abun.thresh, "% Total"),
+                                no = Phylum)) %>%
   group_by(Sample.ID, Phylum) %>%
   dplyr::summarise(relativeAbun = sum(relativeAbun, na.rm = T)) %>%
   as.data.frame()
@@ -371,7 +360,7 @@ phyla.v2$Sample.ID <- factor(phyla.v2$Sample.ID,
                                # Adult hindgut
                                "hind4", "hind7", "hind12", "hind39",
                                "hind40", "hind41", "hind46", "hind48",
-                               "hind49",  
+                               "hind49",
                                # Larval midgut
                                "Lmid2", "Lmid3", "Lmid5", "Lmid9",
                                # Larval ileum
@@ -385,8 +374,8 @@ phyla.v2$Sample.ID <- factor(phyla.v2$Sample.ID,
 
 # Set colors for each phylum
 phyla.cols <- c("white", "#ffff99", "#6a3d9a",
-                "#cab2d6","#ff7f00","#fdbf6f", 
-                "#e31a1c", "#fb9a99", "#33a02c", 
+                "#cab2d6","#ff7f00","#fdbf6f",
+                "#e31a1c", "#fb9a99", "#33a02c",
                 "#b2df8a", "#1f78b4", "#a6cee3")
 
 # Phylum-level relative abundance
@@ -414,7 +403,7 @@ ggplot(phyla.v2, aes(x = Sample.ID, y = relativeAbun,
         axis.title.x = element_blank(),
         axis.text.x = element_text(size = 9),
         legend.key = element_rect(color = "black"))
-  
+
 # Save this!
 ggplot2::ggsave(file.path("Figures", "Relative-Abundance-Superfigure.tiff"),
                 width = 11, height = 5, plot = last_plot())
@@ -440,7 +429,7 @@ amid.phyl <- phyla %>%
   group_by(Stage.Gut, Phylum) %>%
   dplyr::summarise(
     abun = mean(Abundance, na.rm = T),
-    se = sd(Abundance, na.rm = T) / n()
+    se = sd(Abundance, na.rm = T) / sqrt(dplyr::n())
   ) %>%
   dplyr::rename(Abundance = abun) %>%
   as.data.frame()
@@ -454,7 +443,7 @@ ahind.phyl <- phyla %>%
   group_by(Stage.Gut, Phylum) %>%
   dplyr::summarise(
     abun = mean(Abundance, na.rm = T),
-    se = sd(Abundance, na.rm = T) / n()
+    se = sd(Abundance, na.rm = T) / sqrt(dplyr::n())
   ) %>%
   dplyr::rename(Abundance = abun) %>%
   as.data.frame()
@@ -468,7 +457,7 @@ lmid.phyl <- phyla %>%
   group_by(Stage.Gut, Phylum) %>%
   dplyr::summarise(
     abun = mean(Abundance, na.rm = T),
-    se = sd(Abundance, na.rm = T) / n()
+    se = sd(Abundance, na.rm = T) / sqrt(dplyr::n())
   ) %>%
   dplyr::rename(Abundance = abun) %>%
   as.data.frame()
@@ -482,7 +471,7 @@ ileum.phyl <- phyla %>%
   group_by(Stage.Gut, Phylum) %>%
   dplyr::summarise(
     abun = mean(Abundance, na.rm = T),
-    se = sd(Abundance, na.rm = T) / n()
+    se = sd(Abundance, na.rm = T) / sqrt(dplyr::n())
   ) %>%
   dplyr::rename(Abundance = abun) %>%
   as.data.frame()
@@ -496,7 +485,7 @@ paunch.phyl <- phyla %>%
   group_by(Stage.Gut, Phylum) %>%
   dplyr::summarise(
     abun = mean(Abundance, na.rm = T),
-    se = sd(Abundance, na.rm = T) / n()
+    se = sd(Abundance, na.rm = T) / sqrt(dplyr::n())
   ) %>%
   dplyr::rename(Abundance = abun) %>%
   as.data.frame()
@@ -643,7 +632,6 @@ ggplot2::ggsave(file.path("Graphs", "Venn-Diagram-ADULT.tiff"),
 ggplot2::ggsave(file.path("Graphs", "Venn-Diagram-LARVAE.tiff"),
                 width = 4, height = 4,  plot = last_plot())
 
-
 # Make and save a composite figure
 plot_grid(adult_ggvenn, larva_ggvenn,
           ncol = 1, nrow = 2, labels = c("A", "B"))
@@ -652,6 +640,4 @@ plot_grid(adult_ggvenn, larva_ggvenn,
 ggplot2::ggsave(file.path("Figures", "Venn-Diagram-Superfigure.tiff"),
                 width = 5.5, height = 6, plot = last_plot())
 
-
 # END ####
-

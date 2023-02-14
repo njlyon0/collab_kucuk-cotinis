@@ -10,39 +10,31 @@
 # Clear environment (always better to start with tabula rasa)
 rm(list = ls())
 
-# Set working directory
-getwd() # should end in ".../Kucuk-CotinisCollab"
-myWD <- getwd()
+# Load needed libraries
+# install.packages("librarian")
+librarian::shelf(tidyverse, vegan, fossil, ape, phyloseq, jbisanz/qiime2R)
 
-# Get the latest version of the package that will allow for the import of .qza files
-  ## .qza is the format of the data from QIIME2
-#remotes::install_github("jbisanz/qiime2R")
-    ### This line will prompt you to update any needed packages
-    ### Responding with "3" (no quotes) will skip the update step
-
-# Necessary libraries
-library(remotes); library(qiime2R); library(tidyverse)
-library(stringr); library(vegan); library(fossil)
-library(ape); library(phyloseq)
+# Create folder to export tidy data to
+dir.create("Tidy Data", showWarnings = F)
 
 ## ------------------------------------------- ##
                 # Load Data ####
 ## ------------------------------------------- ##
 # Read in the data
   ## Community dataset
-comm.qza <- read_qza("./Data/Raw Data/table.qza")
+comm.qza <- qiime2R::read_qza(file = file.path("Data", "Raw Data", "table.qza"))
 comm.data <- as.data.frame(comm.qza$data)
 
   ## FeatureID to taxonomy information
-tax.qza <- read_qza("./Data/Raw Data/taxonomy.qza")
+tax.qza <- qiime2R::read_qza(file = file.path("Data", "Raw Data", "taxonomy.qza"))
 tax.data <- as.data.frame(tax.qza$data)
 
   ## Unrooted tree
-tree.qza <- read_qza("./Data/Raw Data/unrooted-tree.qza")
+tree.qza <- qiime2R::read_qza(file = file.path("Data", "Raw Data", "unrooted-tree.qza"))
 tree.data <- tree.qza$data
-  
+
   ## Metadata file connecting sample ID with sex/life stage/etc.
-meta <- read.csv("./Data/Raw Data/cotinis-metadata.csv")
+meta <- read.csv(file = file.path("Data", "Raw Data", "cotinis-metadata.csv"))
 
 # Look at what we've got
 str(comm.data)
@@ -58,11 +50,8 @@ str(meta)
 ## ------------------------------------------- ##
 # Split the Taxon by the semicolons (it is too dense as is)
 tax.data.v2 <- tax.data %>%
-  separate(col = Taxon,
-           into = c("Domain", "Phylum", "Subphylum",
-                    "Order", "Family", "Genus",
-                    "Species"),
-           sep = ";D_", remove = F)
+  tidyr::separate(col = Taxon, sep = ";D_", remove = F,
+           into = c("Domain", "Phylum", "Subphylum", "Order", "Family", "Genus", "Species"))
 
 # Check the structure now
 str(tax.data.v2)
@@ -83,7 +72,7 @@ sort(unique(tax.data.v2$Domain))
 
   ## starts with "1__"
 tax.data.v2$Phylum <- gsub("1__", "", tax.data.v2$Phylum)
-sort(unique(tax.data.v2$Phylum)) 
+sort(unique(tax.data.v2$Phylum))
 
   ## starts with "2__"
 tax.data.v2$Subphylum <- gsub("2__", "", tax.data.v2$Subphylum)
@@ -91,19 +80,19 @@ sort(unique(tax.data.v2$Subphylum))
 
   ## starts with "3__"
 tax.data.v2$Order <- gsub("3__", "", tax.data.v2$Order)
-sort(unique(tax.data.v2$Order)) 
+sort(unique(tax.data.v2$Order))
 
   ## starts with "4__"
 tax.data.v2$Family <- gsub("4__", "", tax.data.v2$Family)
-sort(unique(tax.data.v2$Family)) 
+sort(unique(tax.data.v2$Family))
 
   ## starts with "5__"
 tax.data.v2$Genus <- gsub("5__", "", tax.data.v2$Genus)
-sort(unique(tax.data.v2$Genus)) 
+sort(unique(tax.data.v2$Genus))
 
   ## starts with "6__"
 tax.data.v2$Species <- gsub("6__", "", tax.data.v2$Species)
-sort(unique(tax.data.v2$Species)) 
+sort(unique(tax.data.v2$Species))
 
 # How many NAs in the lower classifications?
 plyr::count(is.na(tax.data.v2$Species))
@@ -127,27 +116,18 @@ tax.data.v3 <- tax.data.v2 %>%
   # Rename the first version of the Taxon column while we're here
   dplyr::rename(Old.Taxon = Taxon) %>%
   # Replace each cell with NA if it's an exact match with its broader version
-  dplyr::mutate(
-    Species = ifelse(test = Species == Genus,
-                     yes = NA,
-                     no = Species),
-    Genus = ifelse(test = Genus == Family,
-                     yes = NA,
-                     no = Genus),
-    Family = ifelse(test = Family == Order,
-                     yes = NA,
-                     no = Family),
-    Order = ifelse(test = Order == Subphylum,
-                    yes = NA,
-                    no = Order),
-    Subphylum = ifelse(test = Subphylum == Phylum,
-                    yes = NA,
-                    no = Subphylum),
-    Phylum = ifelse(test = Phylum == Domain,
-                       yes = NA,
-                       no = Phylum)
-  ) %>%
-  
+  dplyr::mutate(Species = ifelse(test = Species == Genus,
+                                 yes = NA, no = Species),
+                Genus = ifelse(test = Genus == Family,
+                               yes = NA, no = Genus),
+                Family = ifelse(test = Family == Order,
+                                yes = NA, no = Family),
+                Order = ifelse(test = Order == Subphylum,
+                               yes = NA, no = Order),
+                Subphylum = ifelse(test = Subphylum == Phylum,
+                                   yes = NA, no = Subphylum),
+                Phylum = ifelse(test = Phylum == Domain,
+                                yes = NA, no = Phylum)) %>%
   # Return a dataframe
   as.data.frame()
 
@@ -173,32 +153,23 @@ plyr::count(is.na(tax.data.v3$Phylum)) # same
 # We're going to make a diagnostic column
   ## to figure out how we can make the new taxon column
 tax.data.v4 <- tax.data.v3 %>%
-  dplyr::mutate(
-    Species.Bin = ifelse(test = is.na(Species) == T,
-                     yes = 0,
-                     no = 1),
-    Genus.Bin = ifelse(test = is.na(Genus) == T,
-                       yes = 0,
-                       no = 1),
-    Family.Bin = ifelse(test = is.na(Family) == T,
-                    yes = 0,
-                    no = 1),
-    Order.Bin = ifelse(test = is.na(Order) == T,
-                       yes = 0,
-                       no = 1),
-    Subphylum.Bin = ifelse(test = is.na(Subphylum) == T,
-                           yes = 0,
-                           no = 1),
-    Phylum.Bin = ifelse(test = is.na(Phylum) == T,
-                        yes = 0,
-                        no = 1),
-    Domain.Bin = ifelse(test = is.na(Domain) == T,
-                        yes = 0,
-                        no = 1),
-    Barcode = paste(Domain.Bin, Phylum.Bin, Subphylum.Bin,
-                           Order.Bin, Family.Bin, Genus.Bin,
-                           Species.Bin, sep = '-')
-  ) %>%
+  dplyr::mutate(Species.Bin = ifelse(test = is.na(Species) == T,
+                                     yes = 0,  no = 1),
+                Genus.Bin = ifelse(test = is.na(Genus) == T,
+                                   yes = 0, no = 1),
+                Family.Bin = ifelse(test = is.na(Family) == T,
+                                    yes = 0, no = 1),
+                Order.Bin = ifelse(test = is.na(Order) == T,
+                                   yes = 0, no = 1),
+                Subphylum.Bin = ifelse(test = is.na(Subphylum) == T,
+                                       yes = 0, no = 1),
+                Phylum.Bin = ifelse(test = is.na(Phylum) == T,
+                                    yes = 0, no = 1),
+                Domain.Bin = ifelse(test = is.na(Domain) == T,
+                                    yes = 0, no = 1),
+                Barcode = paste(Domain.Bin, Phylum.Bin, Subphylum.Bin,
+                                Order.Bin, Family.Bin, Genus.Bin,
+                                Species.Bin, sep = '-')) %>%
   # return a df
   as.data.frame()
 
@@ -210,53 +181,28 @@ sort(unique(tax.data.v4$Barcode))
 
 # We can use that to assign correctly-formatted Taxa IDs!
 tax.data.v5 <- tax.data.v4 %>%
-  # This will be a nested ifelse but it'll be okay
-  dplyr::mutate(
-    BetterID = ifelse(Barcode == "1-0-0-0-0-0-0",
-                   yes = Domain,
-                   no = ifelse(
-                    Barcode == "1-1-0-0-0-0-0" |
-                    Barcode == "1-1-1-0-0-0-0",
-                    yes = paste(Domain, Phylum,
-                                sep = '_'),
-                    no = ifelse(
-                      Barcode == "1-1-0-1-0-0-0" | 
-                      Barcode == "1-1-1-1-0-0-0",
-                      yes = paste(Domain, Phylum,
-                                  Order, sep = '_'),
-                      no = ifelse(
-                        Barcode == "1-1-0-1-1-0-0" |
-                        Barcode == "1-1-1-1-1-0-0",
-                        yes = paste(Domain, Phylum,
-                                    Order, Family, sep = '_'),
-                        no = ifelse(
-                          Barcode == "1-1-0-1-1-1-0" |
-                          Barcode == "1-1-1-1-1-1-0",
-                          yes = paste(Domain, Phylum,
-                                      Order, Family, Genus,
-                                      sep = '_'),
-                          no = ifelse(
-                            Barcode == "1-1-0-1-1-1-1" |
-                              Barcode == "1-1-1-1-1-1-1",
-                            yes = paste(Domain, Phylum,
-                                        Order, Family,
-                                        Genus, Species, sep = '_'),
-                            no = NA))))))
-  ) %>%
-  # Group by this ID
-  group_by(BetterID) %>%
+  dplyr::mutate(BetterID = dplyr::case_when(
+    Barcode == "1-0-0-0-0-0-0" ~ Domain,
+    Barcode %in% c("1-1-0-0-0-0-0", "1-1-1-0-0-0-0") ~ paste(Domain, Phylum, sep = '_'),
+    Barcode %in% c("1-1-0-1-0-0-0", "1-1-1-1-0-0-0") ~ paste(Domain, Phylum, Order,
+                                                             sep = '_'),
+    Barcode %in% c("1-1-0-1-1-0-0", "1-1-1-1-1-0-0") ~ paste(Domain, Phylum, Order,
+                                                             Family, sep = '_'),
+    Barcode %in% c("1-1-0-1-1-1-0", "1-1-1-1-1-1-0") ~ paste(Domain, Phylum, Order,
+                                                             Family, Genus, sep = '_'),
+    Barcode %in% c("1-1-0-1-1-1-1", "1-1-1-1-1-1-1") ~ paste(Domain, Phylum, Order,
+                                                             Family, Genus, Species,
+                                                             sep = '_'),
+    # If the barcode *isn't* one of those, fill with NA
+    TRUE ~ NA)) %>%
   # Get an integer counter for duplicate IDs
-  dplyr::mutate(
-        Dup.Counter = seq_along(BetterID)
-  ) %>%
-  # Ungroup
-  ungroup(BetterID) %>%
+  dplyr::group_by(BetterID) %>%
+  dplyr::mutate(Dup.Counter = seq_along(BetterID)) %>%
+  dplyr::ungroup() %>%
   # Make a finalized Taxon column
-  dplyr::mutate(
-    Taxon = paste(BetterID, Dup.Counter, sep = '_')
-                ) %>%
+  dplyr::mutate(Taxon = paste(BetterID, Dup.Counter, sep = '_')) %>%
   # Remove some now-unneeded columns
-  select(-Species.Bin:-Dup.Counter) %>%
+  dplyr::select(-Species.Bin:-Dup.Counter) %>%
   # Return a dataframe
   as.data.frame()
 
@@ -269,9 +215,8 @@ plyr::count(is.na(tax.data.v5$Taxon))
   ## No NAs!
 
 # Save this out for later reference
-write.csv(tax.data.v5,
-          "./Data/Tidy Data/taxonomy.csv",
-          row.names = F)
+write.csv(x = tax.data.v5, row.names = F, na = '',
+          file = file.path("Data", "Tidy Data", "taxonomy.csv"))
 
 ## -------------------------------------------------------------- ##
                 # Part 2: Community Data Tidying ####
@@ -377,9 +322,8 @@ dive.indexes <- comm.data.v3 %>%
 head(dive.indexes)
 
 # This dataframe is ready for use in stats/visualization!
-write.csv(dive.indexes,
-          "./Data/Tidy Data/alpha-diversity-data.csv",
-          row.names = F)
+write.csv(x = dive.indexes, row.names = F, na = '',
+          file = file.path("Data", "Tidy Data", "alpha-diversity-data.csv"))
 
 ## -------------------------------------------------------------- ##
             # Part 3: Phylogenetic Tree Tidying ####
@@ -411,8 +355,7 @@ tree.data.v2$tip.label.actual <- NULL
 str(tree.data.v2)
 
 # Save it
-write.tree(phy = tree.data.v2,
-           "./Data/Tidy Data/unrooted-tree.tre")
+ape::write.tree(phy = tree.data.v2, file = file.path("Data", "Tidy Data", "unrooted-tree.tre"))
 
 ## -------------------------------------------------------------- ##
               # Part 4: Taxon Abundance Tidying ####
@@ -462,7 +405,7 @@ sort(unique(comm.data.v4$Family))
 # Make a vector of potentially incorrect family IDs
 check.fam <- c("0319-6G20", "67-14", "A0839", "A4b", "AKYG1722", "bacteriap25",
              "BIrii41", "Brachyspirales Incertae Sedis", "Clade I",
-             "Clostridiaceae 1", "Clostridiales vadinBB60 group", 
+             "Clostridiaceae 1", "Clostridiales vadinBB60 group",
              "Coriobacteriales Incertae Sedis", "D05-2", "Family XIII",
              "JG30-KF-CM45", "KF-JG30-B3", "metagenome",
              "Rhizobiales Incertae Sedis", "SC-I-84",
@@ -491,9 +434,7 @@ fam.abun <- comm.data.v4 %>%
   group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
            Domain, Phylum, Family) %>%
   # Sum abundance within these groups
-  summarise(
-    Abundance = sum(Abundance, na.rm = T)
-  ) %>%
+  summarise(Abundance = sum(Abundance, na.rm = T)) %>%
   # Ungroup
   ungroup() %>%
   # Remove any NAs
@@ -503,16 +444,10 @@ fam.abun <- comm.data.v4 %>%
   # Also want to calculate relative abundance
     ## "relative" means within sample calculations are needed
   group_by(Sample.ID) %>%
-  # Calculate total abundance for each sample
-  dplyr::mutate(
-    totalAbun = sum(Abundance)
-  ) %>%
-  # Ungroup
+  dplyr::mutate(totalAbun = sum(Abundance, na.rm = T)) %>%
   ungroup() %>%
   # Calculate relative abundance
-  dplyr::mutate(
-    relativeAbun = (Abundance / totalAbun) * 100
-  ) %>%
+  dplyr::mutate(relativeAbun = (Abundance / totalAbun) * 100) %>%
   # Return df
   as.data.frame()
 
@@ -521,9 +456,8 @@ nrow(comm.data.v4) - nrow(fam.abun)
 dim(comm.data.v4); dim(fam.abun)
 
 # Save this file for later use
-write.csv(fam.abun,
-          "./Data/Tidy Data/family-abun.csv",
-          row.names = F)
+write.csv(x = fam.abun, row.names = F, na = '',
+          file = file.path("Data", "Tidy Data", "family-abun.csv"))
 
 ## ------------------------------------------- ##
       # P4-4: Phylum-Level Abundance ####
@@ -534,12 +468,9 @@ phyla.abun <- comm.data.v4 %>%
     ## This would be done implicitly by group_by()
   dplyr::select(-Family) %>%
   # Group by needed columns
-  group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
-           Domain, Phylum) %>%
+  group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex, Domain, Phylum) %>%
   # Sum abundance within these groups
-  summarise(
-    Abundance = sum(Abundance, na.rm = T)
-  ) %>%
+  summarise(Abundance = sum(Abundance, na.rm = T)) %>%
   # Ungroup
   ungroup() %>%
   # Remove any NAs
@@ -550,15 +481,11 @@ phyla.abun <- comm.data.v4 %>%
     ## "relative" means within sample calculations are needed
   group_by(Sample.ID) %>%
   # Calculate total abundance for each sample
-  dplyr::mutate(
-    totalAbun = sum(Abundance)
-  ) %>%
+  dplyr::mutate(totalAbun = sum(Abundance)) %>%
   # Ungroup
   ungroup() %>%
   # Calculate relative abundance
-  dplyr::mutate(
-    relativeAbun = (Abundance / totalAbun) * 100
-  ) %>%
+  dplyr::mutate(relativeAbun = (Abundance / totalAbun) * 100) %>%
   # Return df
   as.data.frame()
 
@@ -567,9 +494,8 @@ nrow(comm.data.v4) - nrow(phyla.abun)
 dim(comm.data.v4); dim(phyla.abun)
 
 # Save this file for later use
-write.csv(phyla.abun,
-          "./Data/Tidy Data/phylum-abun.csv",
-          row.names = F)
+write.csv(x = phyla.abun, row.names = F, na = '',
+          file = file.path("Data", "Tidy Data", "phylum-abun.csv"))
 
 ## ------------------------------------------- ##
        # P4-5: Genus-Level Abundance ####
@@ -593,9 +519,7 @@ gen.abun <- comm.data.v3 %>%
   # Group by needed columns
   group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex, Genus) %>%
   # Sum abundance within these groups
-  summarise(
-    Abundance = sum(Abundance, na.rm = T)
-  ) %>%
+  summarise(Abundance = sum(Abundance, na.rm = T)) %>%
   # Ungroup
   ungroup() %>%
   # Remove rows without a genus-level ID
@@ -607,9 +531,8 @@ gen.abun <- comm.data.v3 %>%
 str(gen.abun)
 
 # Save it
-write.csv(gen.abun,
-          "./Data/Tidy Data/genus-abun.csv",
-          row.names = F)
+write.csv(x = gen.abun, row.names = F, na = '',
+          file = file.path("Data", "Tidy Data", "genus-abun.csv"))
 
 ## -------------------------------------------------------------- ##
              # Part 5: Calculate Unifrac Distances ####

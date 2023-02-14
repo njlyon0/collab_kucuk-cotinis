@@ -9,13 +9,9 @@
 # Clear environment (always better to start with tabula rasa)
 rm(list = ls())
 
-# Set working directory
-getwd() # should end in ".../Kucuk-CotinisCollab"
-myWD <- getwd()
-
 # Necessary libraries
-# devtools::install_github("njlyon0/helpR")
-library(tidyverse); library(vegan); library(ape); library(helpR)
+# install.packages("librarian")
+librarian::shelf(tidyverse, vegan, ape, supportR)
 
 ## -------------------------------------------- ##
       # Data Retrieval & Housekeeping ####
@@ -25,8 +21,10 @@ alpha <- read.csv(file.path("Data", "Tidy Data", "alpha-diversity-data.csv"))
 beta <- read.csv(file.path("Data", "Tidy Data", "beta-diversity-data.csv"))
 fams <- read.csv(file.path("Data", "Tidy Data", "family-abun.csv"))
 phyla <- read.csv(file.path("Data", "Tidy Data", "phylum-abun.csv"))
-wtd.frc.dist <- read.csv(file.path("Data", "wtd-unfrc-dist.csv"))[-1]
-uwt.frc.dist <- read.csv(file.path("Data", "unwtd-unfrc-dist.csv"))[-1]
+wtd.frc.dist <- read.csv(file.path("Data", "wtd-unfrc-dist.csv")) %>%
+  dplyr::select(-X)
+uwt.frc.dist <- read.csv(file.path("Data", "unwtd-unfrc-dist.csv")) %>%
+  dplyr::select(-X)
 
 # Look at them to be sure nothing obvious is wrong
 str(alpha)
@@ -45,7 +43,7 @@ jac.dist <- vegdist(beta[-c(1:5)], method = 'jaccard')
 
 # We also want to order the factor levels of what we're using as groups for PCoAs
 unique(beta$Stage.Gut)
-beta$Stage.Gut <- factor(beta$Stage.Gut, 
+beta$Stage.Gut <- factor(beta$Stage.Gut,
                               levels = c("Larval paunch", "Larval ileum", "Larval midgut",
                                          "Adult midgut", "Adult hindgut"))
 unique(beta$Stage.Gut)
@@ -85,49 +83,49 @@ wtd.frc.pnts <- ape::pcoa(wtd.frc.dist)
 uwt.frc.pnts <- ape::pcoa(uwt.frc.dist)
 
 # Now make the ordination so that you can look at it (i.e., so that it prints to the viewer in R)
-helpR::pcoa_ord(mod = bc.pnts, groupcol = beta$Stage.Gut,
+supportR::pcoa_ord(mod = bc.pnts, groupcol = beta$Stage.Gut,
                 leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
                 colors = all.cols, leg_pos = "bottomleft")
 
 # Once that looks good save it out using this dev.off bit
 tiff(file = file.path("Graphs", "PCoA-bray-curtis.tiff"))
-helpR::pcoa_ord(mod = bc.pnts, groupcol = beta$Stage.Gut,
+supportR::pcoa_ord(mod = bc.pnts, groupcol = beta$Stage.Gut,
                 leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
                 colors = all.cols, leg_pos = "bottomleft")
 dev.off()
 
 # Now make the Jaccard PCoA
-helpR::pcoa_ord(mod = jacc.pnts, groupcol = beta$Stage.Gut,
+supportR::pcoa_ord(mod = jacc.pnts, groupcol = beta$Stage.Gut,
                 leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
                 colors = all.cols, leg_pos = "bottomleft")
 
 # Once that looks good save it out using this dev.off bit
 tiff(file = file.path("Graphs", "PCoA-jaccard.tiff"))
-helpR::pcoa_ord(mod = jacc.pnts, groupcol = beta$Stage.Gut,
+supportR::pcoa_ord(mod = jacc.pnts, groupcol = beta$Stage.Gut,
                 leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
                 colors = all.cols, leg_pos = "bottomleft")
 dev.off()
 
 # Now make the Weighted Unifrac PCoA
-helpR::pcoa_ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut,
+supportR::pcoa_ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut,
                 leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
                 colors = all.cols, leg_pos = "topright")
 
 # Save the ordination
 tiff(file = file.path("Graphs", "PCoA-weighted-unifrac.tiff"))
-helpR::pcoa_ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut,
+supportR::pcoa_ord(mod = wtd.frc.pnts, groupcol = frc.data$Stage.Gut,
                 leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
                 colors = all.cols, leg_pos = "topright")
 dev.off()
 
 # Finally, do the Unweighted Unifrac PCoA
-helpR::pcoa_ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
+supportR::pcoa_ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
                 leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
                 colors = all.cols, leg_pos = "topleft")
 
 # Save the ordination
 tiff(file = file.path("Graphs", "PCoA-unweighted-unifrac.tiff"))
-helpR::pcoa_ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
+supportR::pcoa_ord(mod = uwt.frc.pnts, groupcol = frc.data$Stage.Gut,
                 leg_cont = c("Paunch", "Ileum", "L-Mid", "A-Mid", "A-Hind"),
                 colors = all.cols, leg_pos = "topleft")
 dev.off()
@@ -143,15 +141,15 @@ alpha_plotdf <- alpha %>%
   group_by(Stage.Gut) %>%
   dplyr::summarise(
     shan = mean(Shannon, na.rm = T),
-    shan_se = ( sd(Shannon, na.rm = T) / n() ),
+    shan_se = ( sd(Shannon, na.rm = T) / sqrt(dplyr::n()) ),
     piel = mean(Pielous, na.rm = T),
-    piel_se = ( sd(Pielous, na.rm = T) / n() ),
+    piel_se = ( sd(Pielous, na.rm = T) / sqrt(dplyr::n()) ),
     simp = mean(Simpson, na.rm = T),
-    simp_se = ( sd(Simpson, na.rm = T) / n() ),
+    simp_se = ( sd(Simpson, na.rm = T) / sqrt(dplyr::n()) ),
     ace = mean(ACE, na.rm = T),
-    ace_se = ( sd(ACE, na.rm = T) / n() ),
+    ace_se = ( sd(ACE, na.rm = T) / sqrt(dplyr::n()) ),
     chao = mean(Chao1, na.rm = T),
-    chao_se = ( sd(Chao1, na.rm = T) / n() )) %>%
+    chao_se = ( sd(Chao1, na.rm = T) / sqrt(dplyr::n()) )) %>%
   # Re-level stage.gut factor order
   dplyr::mutate(Stage.Gut = factor(Stage.Gut,
                                    levels = c("Adult hindgut", "Adult midgut", "Larval midgut",
@@ -252,9 +250,9 @@ fam_plotdf <- fams %>%
   group_by(Stage.Gut, Family) %>%
   dplyr::summarise(
     abun = mean(Abundance, na.rm = T),
-    se = ( sd(Abundance, na.rm = T) / n() )) %>%
+    se = ( sd(Abundance, na.rm = T) / sqrt(dplyr::n()) )) %>%
   dplyr::rename(Abundance = abun)
-  
+
 # Make and save each graph
 ## Adult midgut
 ggplot(data = filter(fam_plotdf, Stage.Gut == "Adult midgut"),
@@ -329,7 +327,7 @@ phyla_plotdf <- phyla %>%
   group_by(Stage.Gut, Phylum) %>%
   dplyr::summarise(
     abun = mean(Abundance, na.rm = T),
-    se = ( sd(Abundance, na.rm = T) / n() )) %>%
+    se = ( sd(Abundance, na.rm = T) / sqrt(dplyr::n()) )) %>%
   dplyr::rename(Abundance = abun)
 
 # Make and save each graph

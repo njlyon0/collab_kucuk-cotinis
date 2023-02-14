@@ -13,24 +13,23 @@
 # Clear environment (always better to start with tabula rasa)
 rm(list = ls())
 
-# Set working directory
-getwd() # should end in ".../Kucuk-CotinisCollab"
-myWD <- getwd()
-
 # Necessary libraries
-library(RRPP); library(tidyverse); library(vegan); library(ape)
+# install.packages("librarian")
+librarian::shelf(tidyverse, vegan, RRPP, ape)
 
 ## -------------------------------------------------------------- ##
                 # Data Retrieval & Housekeeping ####
 ## -------------------------------------------------------------- ##
 # Retrieve the relevant datasets
-alpha <- read.csv("Data/Tidy Data/alpha-diversity-data.csv")
-beta <- read.csv("Data/Tidy Data/beta-diversity-data.csv")
-fams <- read.csv("Data/Tidy Data/family-abun.csv")
-phyla <- read.csv("Data/Tidy Data/phylum-abun.csv")
-genera <- read.csv("Data/Tidy Data/genus-abun.csv")
-wtd.frc.dist <- read.csv("Data/wtd-unfrc-dist.csv")[-1]
-uwt.frc.dist <- read.csv("Data/unwtd-unfrc-dist.csv")[-1]
+alpha <- read.csv(file.path("Data", "Tidy Data", "alpha-diversity-data.csv"))
+beta <- read.csv(file.path("Data", "Tidy Data", "beta-diversity-data.csv"))
+fams <- read.csv(file.path("Data", "Tidy Data", "family-abun.csv"))
+phyla <- read.csv(file.path("Data", "Tidy Data", "phylum-abun.csv"))
+genera <- read.csv(file.path("Data", "Tidy Data", "genus-abun.csv"))
+wtd.frc.dist <- read.csv(file.path("Data", "wtd-unfrc-dist.csv")) %>%
+  dplyr::select(-X)
+uwt.frc.dist <- read.csv(file.path("Data", "unwtd-unfrc-dist.csv")) %>%
+  dplyr::select(-X)
 
 # Look at them to be sure nothing obvious is wrong
 str(alpha)
@@ -45,7 +44,7 @@ jac.dist <- vegdist(beta[-c(1:5)], method = 'jaccard')
 
 # We also want to order the factor levels of what we're using as groups for PCoAs
 unique(beta$Stage.Gut)
-beta$Stage.Gut <- factor(beta$Stage.Gut, 
+beta$Stage.Gut <- factor(beta$Stage.Gut,
                          levels = c("Larval paunch", "Larval ileum", "Larval midgut",
                                     "Adult midgut", "Adult hindgut"))
 unique(beta$Stage.Gut)
