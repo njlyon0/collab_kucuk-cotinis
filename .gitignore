@@ -48,3 +48,7 @@ vignettes/*.pdf
 Graphs/
 Figures/
 Special Taxa Graphs/
+
+# Non-raw data folders
+Tidy Data/
+Beta Diversity/
