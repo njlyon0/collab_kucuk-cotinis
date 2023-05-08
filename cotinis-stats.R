@@ -21,14 +21,14 @@ librarian::shelf(tidyverse, vegan, RRPP, ape)
                 # Data Retrieval & Housekeeping ####
 ## -------------------------------------------------------------- ##
 # Retrieve the relevant datasets
-alpha <- read.csv(file.path("Data", "Tidy Data", "alpha-diversity-data.csv"))
-beta <- read.csv(file.path("Data", "Tidy Data", "beta-diversity-data.csv"))
-fams <- read.csv(file.path("Data", "Tidy Data", "family-abun.csv"))
-phyla <- read.csv(file.path("Data", "Tidy Data", "phylum-abun.csv"))
-genera <- read.csv(file.path("Data", "Tidy Data", "genus-abun.csv"))
-wtd.frc.dist <- read.csv(file.path("Data", "wtd-unfrc-dist.csv")) %>%
+alpha <- read.csv(file.path("data", "tidy_data", "alpha-diversity-data.csv"))
+beta <- read.csv(file.path("data", "tidy_data", "beta-diversity-data.csv"))
+fams <- read.csv(file.path("data", "tidy_data", "family-abun.csv"))
+phyla <- read.csv(file.path("data", "tidy_data", "phylum-abun.csv"))
+genera <- read.csv(file.path("data", "tidy_data", "genus-abun.csv"))
+wtd.frc.dist <- read.csv(file.path("data", "wtd-unfrc-dist.csv")) %>%
   dplyr::select(-X)
-uwt.frc.dist <- read.csv(file.path("Data", "unwtd-unfrc-dist.csv")) %>%
+uwt.frc.dist <- read.csv(file.path("data", "unwtd-unfrc-dist.csv")) %>%
   dplyr::select(-X)
 
 # Look at them to be sure nothing obvious is wrong
