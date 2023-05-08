@@ -7,40 +7,40 @@
   ## Transform the data from .qza files into dataframes that R can understand
   ## Those "regular" dataframes will be used by subsequent codes
 
-# Clear environment (always better to start with tabula rasa)
-rm(list = ls())
-
 # Load needed libraries
 # install.packages("librarian")
 librarian::shelf(tidyverse, vegan, fossil, ape, phyloseq, jbisanz/qiime2R)
 
-# Create folder to export tidy data to
-dir.create("Tidy Data", showWarnings = F)
+# Clear environment
+rm(list = ls())
+
+# Create folder to export tidy_data to
+dir.create(path = file.path("data", "tidy_data"), showWarnings = F)
 
 ## ------------------------------------------- ##
                 # Load Data ####
 ## ------------------------------------------- ##
 # Read in the data
-  ## Community dataset
-comm.qza <- qiime2R::read_qza(file = file.path("Data", "Raw Data", "table.qza"))
-comm.data <- as.data.frame(comm.qza$data)
+## Community dataset
+comm_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "table.qza"))
+comm_data <- as.data.frame(comm_qza$data)
 
-  ## FeatureID to taxonomy information
-tax.qza <- qiime2R::read_qza(file = file.path("Data", "Raw Data", "taxonomy.qza"))
-tax.data <- as.data.frame(tax.qza$data)
+## FeatureID to taxonomy information
+tax_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "taxonomy.qza"))
+tax_data <- as.data.frame(tax_qza$data)
 
-  ## Unrooted tree
-tree.qza <- qiime2R::read_qza(file = file.path("Data", "Raw Data", "unrooted-tree.qza"))
-tree.data <- tree.qza$data
+## Unrooted tree
+tree_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "unrooted-tree.qza"))
+tree_data <- tree_qza$data
 
-  ## Metadata file connecting sample ID with sex/life stage/etc.
-meta <- read.csv(file = file.path("Data", "Raw Data", "cotinis-metadata.csv"))
+## Metadata file connecting sample ID with sex/life stage/etc.
+meta <- read.csv(file = file.path("data", "raw_data", "cotinis-metadata.csv"))
 
 # Look at what we've got
-str(comm.data)
-str(tax.data)
-str(tree.data)
-str(meta)
+dplyr::glimpse(comm_data)
+dplyr::glimpse(tax_data)
+str(tree_data)
+dplyr::glimpse(meta)
 
 ## -------------------------------------------------------------- ##
                # Part 1: Taxonomy Metadata Tidying ####
@@ -49,62 +49,55 @@ str(meta)
     # P1-1: Fix Concatenated Taxon ID ####
 ## ------------------------------------------- ##
 # Split the Taxon by the semicolons (it is too dense as is)
-tax.data.v2 <- tax.data %>%
-  tidyr::separate(col = Taxon, sep = ";D_", remove = F,
-           into = c("Domain", "Phylum", "Subphylum", "Order", "Family", "Genus", "Species"))
+tax_v2 <- tax_data %>%
+  tidyr::separate_wider_delim(cols = Taxon, delim = ";D_",
+                              cols_remove = F, too_few = "align_start",
+                              names = c("Domain", "Phylum", "Subphylum", "Order",
+                                        "Family", "Genus", "Species"))
 
 # Check the structure now
-str(tax.data.v2)
+dplyr::glimpse(tax_v2)
 
 # Examine each of the new columns
-sort(unique(tax.data.v2$Domain)) # starts with "D_0__"
-sort(unique(tax.data.v2$Phylum)) # starts with "1__"
-sort(unique(tax.data.v2$Subphylum)) # starts with "2__"
-sort(unique(tax.data.v2$Order)) # starts with "3__"
-sort(unique(tax.data.v2$Family)) # starts with "4__"
-sort(unique(tax.data.v2$Genus)) # starts with "5__"
-sort(unique(tax.data.v2$Species)) # starts with "6__"
+sort(unique(tax_v2$Domain)) # starts with "D_0__"
+sort(unique(tax_v2$Phylum)) # starts with "1__"
+sort(unique(tax_v2$Subphylum)) # starts with "2__"
+sort(unique(tax_v2$Order)) # starts with "3__"
+sort(unique(tax_v2$Family)) # starts with "4__"
+sort(unique(tax_v2$Genus)) # starts with "5__"
+sort(unique(tax_v2$Species)) # starts with "6__"
 
 # Remove the preceeding numbers for each column
-  ## starts with "D_0__"
-tax.data.v2$Domain <- gsub("D_0__", "", tax.data.v2$Domain)
-sort(unique(tax.data.v2$Domain))
+tax_v3 <- tax_v2 %>%
+  dplyr::mutate(Domain = gsub(pattern = "D_0__", replacement = "", x = Domain),
+                Phylum = gsub(pattern = "1__", replacement = "", x = Phylum),
+                Subphylum = gsub(pattern = "2__", replacement = "", x = Subphylum),
+                Order = gsub(pattern = "3__", replacement = "", x = Order),
+                Family = gsub(pattern = "4__", replacement = "", x = Family),
+                Genus = gsub(pattern = "5__", replacement = "", x = Genus),
+                Species = gsub(pattern = "6__", replacement = "", x = Species))
 
-  ## starts with "1__"
-tax.data.v2$Phylum <- gsub("1__", "", tax.data.v2$Phylum)
-sort(unique(tax.data.v2$Phylum))
-
-  ## starts with "2__"
-tax.data.v2$Subphylum <- gsub("2__", "", tax.data.v2$Subphylum)
-sort(unique(tax.data.v2$Subphylum))
-
-  ## starts with "3__"
-tax.data.v2$Order <- gsub("3__", "", tax.data.v2$Order)
-sort(unique(tax.data.v2$Order))
-
-  ## starts with "4__"
-tax.data.v2$Family <- gsub("4__", "", tax.data.v2$Family)
-sort(unique(tax.data.v2$Family))
-
-  ## starts with "5__"
-tax.data.v2$Genus <- gsub("5__", "", tax.data.v2$Genus)
-sort(unique(tax.data.v2$Genus))
-
-  ## starts with "6__"
-tax.data.v2$Species <- gsub("6__", "", tax.data.v2$Species)
-sort(unique(tax.data.v2$Species))
+# Check that worked
+sort(unique(tax_v3$Domain))
+sort(unique(tax_v3$Phylum))
+sort(unique(tax_v3$Subphylum))
+sort(unique(tax_v3$Order))
+sort(unique(tax_v3$Family))
+sort(unique(tax_v3$Genus))
+sort(unique(tax_v3$Species))
 
 # How many NAs in the lower classifications?
-plyr::count(is.na(tax.data.v2$Species))
-plyr::count(is.na(tax.data.v2$Genus))
-plyr::count(is.na(tax.data.v2$Family))
-plyr::count(is.na(tax.data.v2$Order))
-plyr::count(is.na(tax.data.v2$Subphylum))
-plyr::count(is.na(tax.data.v2$Phylum))
-plyr::count(is.na(tax.data.v2$Domain))
+(na_freq <- tax_v3 %>%
+  # Pivot longer
+  tidyr::pivot_longer(cols = Domain:Species) %>%
+  # Filter to only NAs
+  dplyr::filter(is.na(value)) %>%
+  # Count number of NAs per classification
+  dplyr::group_by(name) %>%
+  dplyr::summarize(raw_na_ct = dplyr::n()))
 
 # What columns do we have access to?
-names(tax.data.v2)
+dplyr::glimpse(tax_v3)
 
 ## ------------------------------------------- ##
   # P1-2: Fix Duplicate IDs (in same row) ####
@@ -112,7 +105,7 @@ names(tax.data.v2)
 # Some columns are duplicated
   # (i.e., family, genus, and species have identical entries)
 # Need to fix that
-tax.data.v3 <- tax.data.v2 %>%
+tax_v4 <- tax_v3 %>%
   # Rename the first version of the Taxon column while we're here
   dplyr::rename(Old.Taxon = Taxon) %>%
   # Replace each cell with NA if it's an exact match with its broader version
@@ -127,96 +120,68 @@ tax.data.v3 <- tax.data.v2 %>%
                 Subphylum = ifelse(test = Subphylum == Phylum,
                                    yes = NA, no = Subphylum),
                 Phylum = ifelse(test = Phylum == Domain,
-                                yes = NA, no = Phylum)) %>%
-  # Return a dataframe
-  as.data.frame()
+                                yes = NA, no = Phylum))
 
 # Re-check NA frequency
-plyr::count(is.na(tax.data.v2$Species))
-plyr::count(is.na(tax.data.v3$Species)) # 460 more
+tax_v4 %>%
+  # Pivot longer
+  tidyr::pivot_longer(cols = Domain:Species) %>%
+  # Filter to only NAs
+  dplyr::filter(is.na(value)) %>%
+  # Count number of NAs per classification
+  dplyr::group_by(name) %>%
+  dplyr::summarize(actual_na_ct = dplyr::n()) %>%
+  # Join on previous frequency assessment
+  dplyr::full_join(y = na_freq, by = "name")
 
-plyr::count(is.na(tax.data.v2$Genus))
-plyr::count(is.na(tax.data.v3$Genus)) # 197 more
+# More holistic structure assessment
+dplyr::glimpse(tax_v4)
 
-plyr::count(is.na(tax.data.v2$Family))
-plyr::count(is.na(tax.data.v3$Family)) # 101 more
+## ------------------------------------------- ##
+        # P1-3: Refine Taxon Column ####
+## ------------------------------------------- ##
 
-plyr::count(is.na(tax.data.v2$Order))
-plyr::count(is.na(tax.data.v3$Order)) # 1 more
-
-plyr::count(is.na(tax.data.v2$Subphylum))
-plyr::count(is.na(tax.data.v3$Subphylum)) # 274 more
-
-plyr::count(is.na(tax.data.v2$Phylum))
-plyr::count(is.na(tax.data.v3$Phylum)) # same
-
-# We're going to make a diagnostic column
-  ## to figure out how we can make the new taxon column
-tax.data.v4 <- tax.data.v3 %>%
-  dplyr::mutate(Species.Bin = ifelse(test = is.na(Species) == T,
-                                     yes = 0,  no = 1),
-                Genus.Bin = ifelse(test = is.na(Genus) == T,
-                                   yes = 0, no = 1),
-                Family.Bin = ifelse(test = is.na(Family) == T,
-                                    yes = 0, no = 1),
-                Order.Bin = ifelse(test = is.na(Order) == T,
-                                   yes = 0, no = 1),
-                Subphylum.Bin = ifelse(test = is.na(Subphylum) == T,
-                                       yes = 0, no = 1),
-                Phylum.Bin = ifelse(test = is.na(Phylum) == T,
-                                    yes = 0, no = 1),
-                Domain.Bin = ifelse(test = is.na(Domain) == T,
-                                    yes = 0, no = 1),
-                Barcode = paste(Domain.Bin, Phylum.Bin, Subphylum.Bin,
-                                Order.Bin, Family.Bin, Genus.Bin,
-                                Species.Bin, sep = '-')) %>%
-  # return a df
-  as.data.frame()
-
-# Check out our new dataframe
-str(tax.data.v4)
-
-# Look at our barcode for specificity
-sort(unique(tax.data.v4$Barcode))
-
-# We can use that to assign correctly-formatted Taxa IDs!
-tax.data.v5 <- tax.data.v4 %>%
-  dplyr::mutate(BetterID = dplyr::case_when(
-    Barcode == "1-0-0-0-0-0-0" ~ Domain,
-    Barcode %in% c("1-1-0-0-0-0-0", "1-1-1-0-0-0-0") ~ paste(Domain, Phylum, sep = '_'),
-    Barcode %in% c("1-1-0-1-0-0-0", "1-1-1-1-0-0-0") ~ paste(Domain, Phylum, Order,
-                                                             sep = '_'),
-    Barcode %in% c("1-1-0-1-1-0-0", "1-1-1-1-1-0-0") ~ paste(Domain, Phylum, Order,
-                                                             Family, sep = '_'),
-    Barcode %in% c("1-1-0-1-1-1-0", "1-1-1-1-1-1-0") ~ paste(Domain, Phylum, Order,
-                                                             Family, Genus, sep = '_'),
-    Barcode %in% c("1-1-0-1-1-1-1", "1-1-1-1-1-1-1") ~ paste(Domain, Phylum, Order,
-                                                             Family, Genus, Species,
-                                                             sep = '_'),
-    # If the barcode *isn't* one of those, fill with NA
-    TRUE ~ NA)) %>%
-  # Get an integer counter for duplicate IDs
-  dplyr::group_by(BetterID) %>%
-  dplyr::mutate(Dup.Counter = seq_along(BetterID)) %>%
+# Get a cleaned up complete feature taxonomy
+better_taxon <- tax_v4 %>%
+  # Pivot long
+  tidyr::pivot_longer(cols = Domain:Species,
+                      names_to = "group",
+                      values_to = "group_id") %>%
+  # Drop NAs
+  dplyr::filter(!is.na(group_id)) %>%
+  # Group by feature ID and collapse re-formatted classifications
+  dplyr::group_by(Feature.ID, Old.Taxon, Confidence) %>%
+  dplyr::summarize(improved_taxon = paste(group_id, collapse = "_")) %>%
   dplyr::ungroup() %>%
-  # Make a finalized Taxon column
-  dplyr::mutate(Taxon = paste(BetterID, Dup.Counter, sep = '_')) %>%
-  # Remove some now-unneeded columns
-  dplyr::select(-Species.Bin:-Dup.Counter) %>%
-  # Return a dataframe
-  as.data.frame()
+  # Group by this revized ID Count number of recurring IDs
+  dplyr::group_by(improved_taxon) %>%
+  dplyr::mutate(rep_ct = seq_along(improved_taxon)) %>%
+  dplyr::ungroup() %>%
+  # Attach the replicate counter to the simplified taxon names
+  dplyr::mutate(Taxon = ifelse(test = rep_ct != 1,
+                               yes = paste0(improved_taxon, "_", rep_ct),
+                               no = improved_taxon)) %>%
+  # Remove unwanted columns
+  dplyr::select(-improved_taxon, -rep_ct)
 
-# Check out the structure of the data
-str(tax.data.v5)
+# Check out contents / NA frequency
+sort(unique(better_taxon$Taxon))
+better_taxon %>%
+  dplyr::filter(is.na(Taxon)) %>%
+  dplyr::summarize(na_ct = dplyr::n())
 
-# And look at our new ID
-sort(unique(tax.data.v5$Taxon))
-plyr::count(is.na(tax.data.v5$Taxon))
-  ## No NAs!
+# Attach this to the actual dataframe
+tax_v5 <- tax_v4 %>%
+  dplyr::left_join(y = better_taxon, by = c("Feature.ID", "Old.Taxon", "Confidence")) %>%
+  # Reorder columns a little as well
+  dplyr::relocate(Old.Taxon, Taxon, .after = Feature.ID)
+
+# Check out what we're left with
+dplyr::glimpse(tax_v5)
 
 # Save this out for later reference
-write.csv(x = tax.data.v5, row.names = F, na = '',
-          file = file.path("Data", "Tidy Data", "taxonomy.csv"))
+write.csv(x = tax_v5, row.names = F, na = '',
+          file = file.path("data", "tidy_data", "taxonomy.csv"))
 
 ## -------------------------------------------------------------- ##
                 # Part 2: Community Data Tidying ####
@@ -224,138 +189,133 @@ write.csv(x = tax.data.v5, row.names = F, na = '',
 ## ------------------------------------------- ##
     # P2-1: Exchange FeatureID for Taxon ####
 ## ------------------------------------------- ##
-# Get featureID out of rownames and into a column
-comm.data$FeatureID <- rownames(comm.data)
-str(comm.data)
+# Do preliminary wrangling
+comm_v2 <- comm_data %>%
+  # Get featureID out of rownames and into a column
+  dplyr::mutate(Feature.ID = rownames(.),
+                .before = dplyr::everything()) %>%
+  # Attach the refined taxonomy column we made above
+  dplyr::mutate(Taxon = tax_v5$Taxon[match(.$Feature.ID, tax_v5$Feature.ID)],
+                .after = Feature.ID)
 
-# Use that to bring in the TaxonID
-comm.data$Taxon <- tax.data.v5$Taxon[match(comm.data$FeatureID, tax.data.v5$Feature.ID)]
-str(comm.data)
+# Re-check structure
+dplyr::glimpse(comm_v2)
 
-# Make taxon the new rowname
-rownames(comm.data) <- comm.data$Taxon
+# Make the revised Taxon column into the new rownames
+rownames(comm_v2) <- comm_v2$Taxon
 
-# Remove both the FeatureID and Taxon columns
-comm.data.v1 <- comm.data %>%
-  select(-FeatureID, -Taxon) %>%
-  as.data.frame()
+# Drop the now-unwanted columns
+comm_v3 <- comm_v2 %>%
+  dplyr::select(-Feature.ID, -Taxon)
 
-# We can only start with a transposed dataframe
-comm.data.v2 <- as.data.frame(t(comm.data.v1))
+# Transpose dataframe to get features as columns and samples as rows
+comm_v4 <- as.data.frame(t(comm_v3)) %>%
+  # Add the rownames back in as a column
+  dplyr::mutate(X.SampleID = rownames(.),
+                .before = dplyr::everything())
+
+# Check out what this leaves us with
+dplyr::glimpse(comm_v4[1:5])
 
 ## ------------------------------------------- ##
      # P2-2: Integrate & Tidy Metadata ####
 ## ------------------------------------------- ##
-# Process data
-comm.data.v3 <- comm.data.v2 %>%
-  ## Create a column from the rownames
-  dplyr::mutate(X.SampleID = rownames(comm.data.v2)) %>%
-  ## Bring in the metadata
-  left_join(meta, by = "X.SampleID") %>%
-  ## Get a differently-named version of Sample ID
-  dplyr::mutate(Sample.ID = X.SampleID) %>%
-  ## Remove unnecessary columns
-  select(-X.SampleID:-Fraction., -Generalgutregion) %>%
-  ## Rename the gut region column as two new columns
-  dplyr::mutate(
-    Gut.Region = Specificgutregion,
-    Stage.Gut = Specificgutregion
-      ) %>%
-  ## Remove the specific gut region column too
-  select(-Specificgutregion) %>%
-  ## Move the columns we kept to the front
-  relocate(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex) %>%
-  ## Filter out the unfed adults
-  filter(Sample.ID != "Unfedfemale1hind" & Sample.ID != "Unfedfemale1mid" &
-           Sample.ID != "UnfedFemale1Mid" & Sample.ID != "UnfedFemale2hind" &
-           Sample.ID != "UnfedMale1hind" & Sample.ID != "UnfedMale1Mid") %>%
-  ## Return dataframe
-  as.data.frame()
+# Integrate metadata
+comm_v5 <- comm_v4 %>%
+  # Attach all metadata
+  dplyr::left_join(y = meta, by = "X.SampleID") %>%
+  # Rename sample ID & specific gut region
+  dplyr::rename(Sample.ID = X.SampleID,
+                Stage.Gut = Specificgutregion) %>%
+  # Get a 'gut region only' column
+  dplyr::mutate(Gut.Region = gsub(pattern = "Adult |Larval ", replacement = "",
+                                  x = Stage.Gut)) %>%
+  # Remove unwanted columns
+  dplyr::select(-BarcodeSequence, -LinkerPrimer, -Nucleotide,
+                -Fraction., -Generalgutregion) %>%
+  # Move metadata columns to left
+  dplyr::relocate(Lifestage, Gut.Region, Stage.Gut, Sex,
+                  .after = Sample.ID) %>%
+  # Drop unwanted samples (i.e., "unfed" samples)
+  dplyr::filter(!Sample.ID %in% c("Unfedfemale1hind", "Unfedfemale1mid", "UnfedFemale1Mid",
+                                  "UnfedFemale2hind", "UnfedMale1hind", "UnfedMale1Mid"))
 
-# Look at what we brought in
-names(comm.data.v3[1:10])
+# Check structure of first bit of dataframe
+dplyr::glimpse(comm_v5[1:5])
 
-# Tidy those metadata columns
-sort(unique(comm.data.v3$Sample.ID))
-sort(unique(comm.data.v3$Lifestage))
-sort(unique(comm.data.v3$Stage.Gut))
-sort(unique(comm.data.v3$Sex))
-  ## These look good
+# What samples remain?
+sort(unique(comm_v5$Sample.ID))
 
-# The gut region needs simplification
-sort(unique(comm.data.v3$Gut.Region))
-comm.data.v3$Gut.Region <- gsub("Adult |Larval ", "", comm.data.v3$Gut.Region)
-sort(unique(comm.data.v3$Gut.Region))
-
-# Examine the starts and ends of the dataframe
-names(comm.data.v3[c(1:10, (ncol(comm.data.v3)-10):ncol(comm.data.v3))])
+# Explore other metadata columns
+sort(unique(comm_v5$Lifestage))
+sort(unique(comm_v5$Stage.Gut))
+sort(unique(comm_v5$Gut.Region))
+sort(unique(comm_v5$Sex))
 
 # Save this out for beta diversity calculation in another script
-write.csv(comm.data.v3,
-          "./Data/Tidy Data/beta-diversity-data.csv",
-          row.names = F)
+write.csv(x = comm_v5, row.names = F, na = '',
+          file = file.path("data", "tidy_data", "beta-diversity-data.csv"))
 
 ## ------------------------------------------- ##
      # P2-3: Calculate Alpha Diversity ####
 ## ------------------------------------------- ##
 # Calculate each index
-dive.indexes <- comm.data.v3 %>%
-  ## The following calculations should be done for every row
+## NOTE: takes a few seconds to complete
+dive_indexes <- comm_v5 %>%
+  # The following calculations should be done for every row
   rowwise() %>%
-  ## Calculate the indexes
-  dplyr::mutate(
-    Shannon = vegan::diversity(across(-Sample.ID:-Sex),
-                               index = 'shannon'),
-    Simpson = vegan::diversity(across(-Sample.ID:-Sex),
-                               index = 'simpson'),
-    Richness = vegan::specnumber(across(-Sample.ID:-Sex)),
-    Pielous = (Shannon / log(Richness)),
-    ACE = fossil::ACE(across(-Sample.ID:-Sex),
-                      taxa.row = T),
-    Chao1 = fossil::chao1(across(-Sample.ID:-Sex),
-                          taxa.row = T)
-    ) %>%
-  ## Remove the actual community (for ease of plotting)
-  select(Sample.ID:Sex, Shannon:Chao1) %>%
-  as.data.frame()
+  # Calculate the indexes
+  dplyr::mutate(Shannon = vegan::diversity(dplyr::across(-Sample.ID:-Sex),
+                                           index = 'shannon'),
+                Simpson = vegan::diversity(dplyr::across(-Sample.ID:-Sex),
+                                           index = 'simpson'),
+                Richness = vegan::specnumber(dplyr::across(-Sample.ID:-Sex)),
+                Pielous = (Shannon / log(Richness)),
+                ACE = fossil::ACE(dplyr::across(-Sample.ID:-Sex),
+                                  taxa.row = T),
+                Chao1 = fossil::chao1(dplyr::across(-Sample.ID:-Sex),
+                                      taxa.row = T) ) %>%
+  # Remove the actual community (for ease of plotting)
+  select(Sample.ID:Sex, Shannon:Chao1)
 
-head(dive.indexes)
+# Check structure
+dplyr::glimpse(dive_indexes)
 
 # This dataframe is ready for use in stats/visualization!
-write.csv(x = dive.indexes, row.names = F, na = '',
-          file = file.path("Data", "Tidy Data", "alpha-diversity-data.csv"))
+write.csv(x = dive_indexes, row.names = F, na = '',
+          file = file.path("data", "tidy_data", "alpha-diversity-data.csv"))
 
 ## -------------------------------------------------------------- ##
             # Part 3: Phylogenetic Tree Tidying ####
 ## -------------------------------------------------------------- ##
 # Look at the tree file
-str(tree.data)
+str(tree_data)
 
 # Make a duplicate
-tree.data.v2 <- tree.data
+tree_v2 <- tree_data
 
 ## ------------------------------------------- ##
           # P3-1: Fix Tip Labels ####
 ## ------------------------------------------- ##
 # Tip labels are named with FeatureID which is not informative
   ## Want to replace with our tidied "Taxon" column
-tree.data.v2$tip.label.actual <- tax.data.v5$Taxon[match(tree.data$tip.label, tax.data.v5$Feature.ID)]
+tree_v2$tip.label.actual <- tax_v5$Taxon[match(tree_data$tip.label, tax_v5$Feature.ID)]
 
 # Check it out
-str(tree.data.v2)
+str(tree_v2)
 
 # Remove the old tip label
-tree.data.v2$tip.label <- NULL
+tree_v2$tip.label <- NULL
 
 # Re-name the new tip label so later functions don't get suprised and frightened
-tree.data.v2$tip.label <- tree.data.v2$tip.label.actual
-tree.data.v2$tip.label.actual <- NULL
+tree_v2$tip.label <- tree_v2$tip.label.actual
+tree_v2$tip.label.actual <- NULL
 
 # Double check what we're left with
-str(tree.data.v2)
+str(tree_v2)
 
 # Save it
-ape::write.tree(phy = tree.data.v2, file = file.path("Data", "Tidy Data", "unrooted-tree.tre"))
+ape::write.tree(phy = tree_v2, file = file.path("data", "tidy_data", "unrooted-tree.tre"))
 
 ## -------------------------------------------------------------- ##
               # Part 4: Taxon Abundance Tidying ####
@@ -364,46 +324,42 @@ ape::write.tree(phy = tree.data.v2, file = file.path("Data", "Tidy Data", "unroo
     # P4-1: Migrate Phylum and Family ####
 ## ------------------------------------------- ##
 # Check structure of taxon metadata
-str(tax.data.v5)
+dplyr::glimpse(tax_v5)
 
 # And the community data
-str(comm.data.v3)
+dplyr::glimpse(comm_v5)
 
 # Create the necessary community dataset
-comm.data.v4 <- comm.data.v3 %>%
+comm_v6 <- comm_v5 %>%
   # Pivot to long format
-  pivot_longer(
-    cols = -Sample.ID:-Sex,
-    names_to = "Taxon",
-    values_to = "Abundance"
-  ) %>%
+  tidyr::pivot_longer(cols = -Sample.ID:-Sex,
+                      names_to = "Taxon",
+                      values_to = "Abundance") %>%
   # Bring over all of the columns from the taxonomic data
-  left_join(tax.data.v5, by = "Taxon") %>%
+  left_join(tax_v5, by = "Taxon") %>%
   # Keep only desired columns (non-specified columns are dropped)
   dplyr::select(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
-                Domain, Phylum, Family, Abundance) %>%
-  # Return df
-  as.data.frame()
+                Domain, Phylum, Family, Abundance)
 
 # Check what we've created
-str(comm.data.v4)
+dplyr::glimpse(comm_v6)
 
 ## ------------------------------------------- ##
    # P4-2: Check Phylum & Family Columns ####
 ## ------------------------------------------- ##
 # Check domain (shouldn't have issues but better safe than sorry)
-sort(unique(comm.data.v4$Domain))
+sort(unique(comm_v6$Domain))
 
 # Check phylum
-sort(unique(comm.data.v4$Phylum))
+sort(unique(comm_v6$Phylum))
   ## "RsaHF231" is a candidate phylum so we'll allow it (for now)
 
 # Check family
-sort(unique(comm.data.v4$Family))
+sort(unique(comm_v6$Family))
   ## Some worrisome so let's get more detail on those
 
 # Make a vector of potentially incorrect family IDs
-check.fam <- c("0319-6G20", "67-14", "A0839", "A4b", "AKYG1722", "bacteriap25",
+check_fam <- c("0319-6G20", "67-14", "A0839", "A4b", "AKYG1722", "bacteriap25",
              "BIrii41", "Brachyspirales Incertae Sedis", "Clade I",
              "Clostridiaceae 1", "Clostridiales vadinBB60 group",
              "Coriobacteriales Incertae Sedis", "D05-2", "Family XIII",
@@ -416,12 +372,8 @@ check.fam <- c("0319-6G20", "67-14", "A0839", "A4b", "AKYG1722", "bacteriap25",
              "Unknown Family", "wastewater metagenome", "WD2101 soil group")
 
 # Examine the taxonomic data we have on these dubious "families"
-dubious.fams <- tax.data.v5 %>%
-  dplyr::filter(Family %in% check.fam) %>%
-  as.data.frame()
-
-# Look at this
-# View(dubious.fams)
+(dubious_fams <- tax_v5 %>%
+  dplyr::filter(Family %in% check_fam))
 
 # Because it's abundance, we can leave this alone (though may need to return)
 
@@ -429,128 +381,106 @@ dubious.fams <- tax.data.v5 %>%
       # P4-3: Family-Level Abundance ####
 ## ------------------------------------------- ##
 # Want family-level abundance
-fam.abun <- comm.data.v4 %>%
-  # Group by needed columns
-  group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
-           Domain, Phylum, Family) %>%
-  # Sum abundance within these groups
-  summarise(Abundance = sum(Abundance, na.rm = T)) %>%
-  # Ungroup
-  ungroup() %>%
-  # Remove any NAs
-  filter(!is.na(Family)) %>%
-  # Remove any 0 abundances
-  filter(Abundance != 0) %>%
+fam_abun <- comm_v6 %>%
+  # Sum abundance within family (retaining other, coarser groupings)
+  dplyr::group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
+                  Domain, Phylum, Family) %>%
+  dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Remove any NAs and 0 abundances
+  dplyr::filter(!is.na(Family) & Abundance > 0) %>%
   # Also want to calculate relative abundance
     ## "relative" means within sample calculations are needed
-  group_by(Sample.ID) %>%
+  dplyr::group_by(Sample.ID) %>%
   dplyr::mutate(totalAbun = sum(Abundance, na.rm = T)) %>%
-  ungroup() %>%
+  dplyr::ungroup() %>%
   # Calculate relative abundance
-  dplyr::mutate(relativeAbun = (Abundance / totalAbun) * 100) %>%
-  # Return df
-  as.data.frame()
+  dplyr::mutate(relativeAbun = (Abundance / totalAbun) * 100)
+
+# Glimpse this
+dplyr::glimpse(fam_abun)
 
 # Should have lost *a lot* of rows
-nrow(comm.data.v4) - nrow(fam.abun)
-dim(comm.data.v4); dim(fam.abun)
+nrow(comm_v6) - nrow(fam_abun)
+dim(comm_v6); dim(fam_abun)
 
 # Save this file for later use
-write.csv(x = fam.abun, row.names = F, na = '',
-          file = file.path("Data", "Tidy Data", "family-abun.csv"))
+write.csv(x = fam_abun, row.names = F, na = '',
+          file = file.path("data", "tidy_data", "family-abun.csv"))
 
 ## ------------------------------------------- ##
       # P4-4: Phylum-Level Abundance ####
 ## ------------------------------------------- ##
 # Want phylum-level abundance
-phyla.abun <- comm.data.v4 %>%
-  # Remove family column
-    ## This would be done implicitly by group_by()
-  dplyr::select(-Family) %>%
-  # Group by needed columns
-  group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex, Domain, Phylum) %>%
-  # Sum abundance within these groups
-  summarise(Abundance = sum(Abundance, na.rm = T)) %>%
-  # Ungroup
-  ungroup() %>%
-  # Remove any NAs
-  filter(!is.na(Phylum)) %>%
-  # Remove any 0 abundances
-  filter(Abundance != 0) %>%
+phyla_abun <- comm_v6 %>%
+  # Sum abundance within phylum (retaining other, coarser groupings)
+  dplyr::group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
+                  Domain, Phylum) %>%
+  dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Remove any NAs and 0 abundances
+  dplyr::filter(!is.na(Phylum) & Abundance > 0) %>%
   # Also want to calculate relative abundance
-    ## "relative" means within sample calculations are needed
-  group_by(Sample.ID) %>%
-  # Calculate total abundance for each sample
-  dplyr::mutate(totalAbun = sum(Abundance)) %>%
-  # Ungroup
-  ungroup() %>%
+  ## "relative" means within sample calculations are needed
+  dplyr::group_by(Sample.ID) %>%
+  dplyr::mutate(totalAbun = sum(Abundance, na.rm = T)) %>%
+  dplyr::ungroup() %>%
   # Calculate relative abundance
-  dplyr::mutate(relativeAbun = (Abundance / totalAbun) * 100) %>%
-  # Return df
-  as.data.frame()
+  dplyr::mutate(relativeAbun = (Abundance / totalAbun) * 100)
+
+# Glimpse this
+dplyr::glimpse(phyla_abun)
 
 # Should have lost *a lot* of rows
-nrow(comm.data.v4) - nrow(phyla.abun)
-dim(comm.data.v4); dim(phyla.abun)
+nrow(comm_v6) - nrow(phyla_abun)
+dim(comm_v6); dim(phyla_abun)
 
 # Save this file for later use
-write.csv(x = phyla.abun, row.names = F, na = '',
-          file = file.path("Data", "Tidy Data", "phylum-abun.csv"))
+write.csv(x = phyla_abun, row.names = F, na = '',
+          file = file.path("data", "tidy_data", "phylum-abun.csv"))
 
 ## ------------------------------------------- ##
        # P4-5: Genus-Level Abundance ####
 ## ------------------------------------------- ##
-# Examine genera
-sort(unique(tax.data.v5$Genus))
-
-# Create the necessary community dataset
-gen.abun <- comm.data.v3 %>%
+# Need to create the necessary community dataset
+gen_abun <- comm_v5 %>%
   # Pivot to long format
-  pivot_longer(
-    cols = -Sample.ID:-Sex,
-    names_to = "Taxon",
-    values_to = "Abundance"
-  ) %>%
+  tidyr::pivot_longer(cols = -Sample.ID:-Sex,
+                      names_to = "Taxon",
+                      values_to = "Abundance") %>%
   # Bring over all of the columns from the taxonomic data
-  left_join(tax.data.v5, by = "Taxon") %>%
-  # Keep only desired columns (non-specified columns are dropped)
-  dplyr::select(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
-                Genus, Abundance) %>%
-  # Group by needed columns
-  group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex, Genus) %>%
-  # Sum abundance within these groups
-  summarise(Abundance = sum(Abundance, na.rm = T)) %>%
-  # Ungroup
-  ungroup() %>%
-  # Remove rows without a genus-level ID
-  filter(!is.na(Genus)) %>%
-  # Return df
-  as.data.frame()
+  dplyr::left_join(tax_v5, by = "Taxon") %>%
+  # Get generic abundance totals
+  dplyr::group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex, Genus) %>%
+  dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Remove rows without a genus-level ID / those with abundance of 0
+  filter(!is.na(Genus) & Abundance > 0)
 
-# Check what we've created
-str(gen.abun)
+# Check that out
+dplyr::glimpse(gen_abun)
 
 # Save it
-write.csv(x = gen.abun, row.names = F, na = '',
-          file = file.path("Data", "Tidy Data", "genus-abun.csv"))
+write.csv(x = gen_abun, row.names = F, na = '',
+          file = file.path("data", "tidy_data", "genus-abun.csv"))
 
 ## -------------------------------------------------------------- ##
              # Part 5: Calculate Unifrac Distances ####
 ## -------------------------------------------------------------- ##
 # Re-check what you may need for unifrac distance calculation
-  ## Abundance table
-str(comm.data.v3)
-class(comm.data.v3)
+## Abundance table
+str(comm_v6)
+class(comm_v6)
 
-  ## Phylogenetic tree
-str(tree.data.v2)
-class(tree.data.v2)
+## Phylogenetic tree
+str(tree_v2)
+class(tree_v2)
 
 ## ------------------------------------------- ##
          # P5-1: Weighted Unifrac ####
 ## ------------------------------------------- ##
 # https://rdrr.io/github/MadsAlbertsen/ampvis2/man/unifrac.html
-# unifrac::unifrac(tree.data.v2)
+# unifrac::unifrac(tree_v2)
 
 
 
