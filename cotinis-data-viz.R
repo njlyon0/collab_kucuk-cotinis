@@ -309,32 +309,27 @@ for(stage_gut in sort(unique(phyla_plotdf$Stage.Gut))){
 ## -------------------------------------------- ##
        # Global Phylum Abundance Plot ####
 ## -------------------------------------------- ##
-# Look at the phylum-level abundance
-head(phyla)
-
 # Get a global version of that (i.e., one that ditches the sample information)
-phyl.global <- phyla %>%
-  # Remove un-needed columns
-  dplyr::select(Domain, Phylum, Abundance) %>%
-  # Group by phylum
-  group_by(Phylum) %>%
-  # Sum to get one instance of each
+phyl_global <- phyla %>%
+  # Get total sum per phylum
+  dplyr::group_by(Phylum) %>%
   dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
-  as.data.frame()
+  dplyr::ungroup()
 
 # Look at what that produced
-head(phyl.global)
+dplyr::glimpse(phyl_global)
 
 # Graph that
-ggplot(phyl.global, aes(y = Abundance, x = reorder(Phylum, -Abundance),
+ggplot(phyl_global, aes(y = Abundance, x = reorder(Phylum, -Abundance),
                        fill = 'x', color = 'x')) +
   geom_bar(stat = 'identity') +
   scale_fill_manual(values = "#41ab5d") +
   scale_color_manual(values = 'black') +
   labs(x = "Phylum", y = "Abundance") +
   pref_theme + theme(legend.position = 'none', axis.text.x = element_text(size = 8))
+
+# Export
 ggsave(plot = last_plot(), file.path("graphs", "phyla-abun-all.tiff"),
        width = 6, height = 6, units = 'in')
 
 # END ####
-
