@@ -457,10 +457,10 @@ for(stage_gut in sort(unique(fig5_plotdf$Stage.Gut))){
   fig5_list[[stage_gut]] <- fig5_subplot }
 
 # Assemble figure 5
-plot_grid(fig5_list[["Adult midgut"]], fig5_list[["Adult hindgut"]], NA,
-          fig5_list[["Larval midgut"]], fig5_list[["Larval ileum"]],
-          fig5_list[["Larval paunch"]],
-          ncol = 3, nrow = 2, labels = c("A", "B", NA, "C", "D", "E"))
+cowplot::plot_grid(fig5_list[["Adult midgut"]], fig5_list[["Adult hindgut"]], NA,
+                   fig5_list[["Larval midgut"]], fig5_list[["Larval ileum"]],
+                   fig5_list[["Larval paunch"]],
+                   ncol = 3, nrow = 2, labels = c("A", "B", NA, "C", "D", "E"))
 
 # Export
 ggplot2::ggsave(file.path("figures", "Relative-Abundance-Subsets-Superfigure.tiff"),
@@ -475,26 +475,23 @@ str(beta[1:20])
 # Prepare it for use in the venn diagram
 venn.df <- beta %>%
   # Pivot to long format
-  pivot_longer(-Sample.ID:-Sex,
-               names_to = 'Taxon',
-               values_to = 'Abundance') %>%
-  # Group by Stage.Gut and Taxon
+  tidyr::pivot_longer(-Sample.ID:-Sex, names_to = 'Taxon', values_to = 'Abundance') %>%
+  # Sum across samples within Stage.Gut and Taxon
   dplyr::group_by(Stage.Gut, Taxon) %>%
-  # Sum across samples within the aforementioned groups
   dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
+  dplyr::ungroup() %>%
   # Do some changes to work with the `ggvenn` function/package
-  dplyr::mutate(
-    Abundance = dplyr::case_when(
-      is.na(Abundance) ~ FALSE,
-      Abundance == 0 ~ FALSE,
-      TRUE ~ TRUE)) %>%
+  dplyr::mutate(Abundance = dplyr::case_when(
+    is.na(Abundance) ~ FALSE,
+    Abundance == 0 ~ FALSE,
+    TRUE ~ TRUE)) %>%
   # Pivot to wide format with Stage.Gut as columns
-  pivot_wider(id_cols = Taxon,
-              names_from = Stage.Gut,
-              values_from = Abundance )
+  tidyr::pivot_wider(id_cols = Taxon,
+                     names_from = Stage.Gut,
+                     values_from = Abundance )
 
 # Check it out again
-str(venn.df)
+dplyr::glimpse(venn.df)
 
 # Make Venn diagram for each and save them separately
 ## Adults
@@ -503,7 +500,8 @@ str(venn.df)
        fill_color = c('blue', 'light blue'),
        text_size = 6, set_name_size = 4.5,
        show_percentage = F) )
-ggplot2::ggsave(file.path("Graphs", "Venn-Diagram-ADULT.tiff"),
+## Expport
+ggplot2::ggsave(file.path("graphs", "Venn-Diagram-ADULT.tiff"),
                 width = 4, height = 4, plot = last_plot())
 
 ## Larvae
@@ -512,15 +510,14 @@ ggplot2::ggsave(file.path("Graphs", "Venn-Diagram-ADULT.tiff"),
         fill_color = c('red', 'orange', 'yellow'),
         text_size = 4, set_name_size = 4.5,
         show_percentage = F) )
-ggplot2::ggsave(file.path("Graphs", "Venn-Diagram-LARVAE.tiff"),
+ggplot2::ggsave(file.path("graphs", "Venn-Diagram-LARVAE.tiff"),
                 width = 4, height = 4,  plot = last_plot())
 
 # Make and save a composite figure
-plot_grid(adult_ggvenn, larva_ggvenn,
-          ncol = 1, nrow = 2, labels = c("A", "B"))
+cowplot::plot_grid(adult_ggvenn, larva_ggvenn, ncol = 1, nrow = 2, labels = "AUTO")
 
 # Option A:
-ggplot2::ggsave(file.path("Figures", "Venn-Diagram-Superfigure.tiff"),
+ggplot2::ggsave(file.path("figures", "Venn-Diagram-Superfigure.tiff"),
                 width = 5.5, height = 6, plot = last_plot())
 
 # END ####
