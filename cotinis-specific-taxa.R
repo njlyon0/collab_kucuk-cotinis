@@ -6,21 +6,21 @@
 # PURPOSE:
 ## Create figures for the specific microbial taxa of interest found in Cotinis nitida
 
-# Clear environment (always better to start with tabula rasa)
-rm(list = ls())
-
 # Necessary libraries
 # install.packages("librarian")
 librarian::shelf(tidyverse, vegan, ape, cowplot)
+
+# Clear environment (always better to start with tabula rasa)
+rm(list = ls())
+
+# Create directory to save these to
+dir.create("special_taxa_graphs", showWarnings = F)
 
 ## -------------------------------------------------------------- ##
                 # Data Retrieval & Housekeeping ####
 ## -------------------------------------------------------------- ##
 # Retrieve the relevant datasets
-beta <- read.csv(file.path("Data", "Tidy Data", "beta-diversity-data.csv"))
-
-# Create directory to save these to
-dir.create("Special Taxa Graphs", showWarnings = F)
+beta <- read.csv(file.path("data", "tidy_data", "beta-diversity-data.csv"))
 
 # We also want to make a standard ggplot2 theme
 pref_theme <- theme_classic() +
@@ -36,7 +36,6 @@ gut_levels <- c("Larval paunch", "Larval ileum", "Larval midgut",
                 "Adult midgut", "Adult hindgut")
 
 # Create vector for coloring as well
-## Order is one white then order of 'gut_levels' object above
 color_vec <- c("#a50026", "#f46d43", "#fee090", "#abd9e9", "#4575b4")
 
 ## -------------------------------------------------------------- ##
@@ -65,31 +64,31 @@ for(k in 1:length(desired_taxa)){
   # Identify taxon
   special_taxon <- desired_taxa[k]
 
+  # Starting message
+  message("Processing begun for ", special_taxon)
+
   # Summarize the dataframe as needed
   sub_df <- beta %>%
     # Pivot to long format
     tidyr::pivot_longer(-Sample.ID:-Sex, names_to = 'Taxon',
                         values_to = 'Abundance') %>%
     # Coerce all IDs other than the desired one into 'other'
-    dplyr::mutate(Taxon_Simp = dplyr::case_when(
-      stringr::str_detect(string = Taxon, pattern = special_taxon) ~ special_taxon,
-      TRUE ~ "Other") ) %>%
-    # Keep only the genus of interest
-    # filter() %>%
+    dplyr::mutate(Taxon_Simp = ifelse(
+      test = stringr::str_detect(string = Taxon, pattern = special_taxon) == T,
+      yes = special_taxon,
+      no = "other")) %>%
+    # Drop "other"
+    dplyr::filter(Taxon_Simp != "other") %>%
     # Sum across samples within Stage.Gut
-    group_by(Stage.Gut, Taxon_Simp) %>%
+    dplyr::group_by(Stage.Gut, Taxon_Simp) %>%
     dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
+    dplyr::ungroup() %>%
     # Re-level the Stage.Gut column
     dplyr::mutate(Stage.Gut = factor(Stage.Gut, levels = gut_levels)) %>%
     # Calculate relative abundance
     dplyr::group_by(Stage.Gut) %>%
-    dplyr::mutate(
-      total = sum(Abundance, na.rm = T),
-      percAbun = (Abundance / total) * 100) %>%
-    # Drop the 'Other' taxa
-    dplyr::filter(Taxon_Simp != "Other") %>%
-    # Return dataframe
-    as.data.frame()
+    dplyr::mutate(total = sum(Abundance, na.rm = T),
+                  percAbun = (Abundance / total) * 100)
 
  # Assemble y-axis label
   if(str_detect(string = special_taxon, pattern = "aceae") == FALSE){
@@ -115,7 +114,7 @@ for(k in 1:length(desired_taxa)){
   }
 
   # Save that plot
-  ggplot2::ggsave(file.path("Special Taxa Graphs",
+  ggplot2::ggsave(file.path("special_taxa_graphs",
                             paste0(special_taxon, "-Figure.tiff")),
                   width = 4, height = 5, plot = sub_plot)
 
@@ -123,22 +122,10 @@ for(k in 1:length(desired_taxa)){
   plot_list[[k]] <- sub_plot
 
   # Alert the user which graph was produced
-  message(special_taxon, " graphic produced. ", length(desired_taxa) - k, " remaining." )
+  message(special_taxon, " graphic produced (", length(desired_taxa) - k, " remaining)" ) }
 
-}
-
-## -------------------------------------------------------------- ##
-                # Combination Figure Creation ####
-## -------------------------------------------------------------- ##
-# Now we want to make a single grid of all these graphs
-length(plot_list)
-
-# Let's make the figure
+# We can also make a combination graph of all of those
 cowplot::plot_grid(plotlist = plot_list, nrow = 4, ncol = 4,
                    labels = 'AUTO', label_x = 0.2)
 
-# And save that
-ggplot2::ggsave(file.path("Figures", "Special-Taxa-Superfigure.tiff"),
-                width = 12, height = 12, plot = last_plot())
-
-# End ---
+# End ----
