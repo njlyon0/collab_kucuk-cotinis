@@ -46,9 +46,14 @@ vignettes/*.pdf
 
 # Visualization folders
 Graphs/
+graphs/
 Figures/
+figures/
 Special Taxa Graphs/
+special_taxa_graphs/
 
 # Non-raw data folders
 Tidy Data/
+tidy_data/
 Beta Diversity/
+beta_diversity/
