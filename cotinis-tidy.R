@@ -276,7 +276,7 @@ dive_indexes <- comm_v5 %>%
                 Chao1 = fossil::chao1(dplyr::across(-Sample.ID:-Sex),
                                       taxa.row = T) ) %>%
   # Remove the actual community (for ease of plotting)
-  select(Sample.ID:Sex, Shannon:Chao1)
+  dplyr::select(Sample.ID:Sex, Shannon:Chao1)
 
 # Check structure
 dplyr::glimpse(dive_indexes)
@@ -336,7 +336,7 @@ comm_v6 <- comm_v5 %>%
                       names_to = "Taxon",
                       values_to = "Abundance") %>%
   # Bring over all of the columns from the taxonomic data
-  left_join(tax_v5, by = "Taxon") %>%
+  dplyr::left_join(tax_v5, by = "Taxon") %>%
   # Keep only desired columns (non-specified columns are dropped)
   dplyr::select(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex,
                 Domain, Phylum, Family, Abundance)
@@ -455,7 +455,13 @@ gen_abun <- comm_v5 %>%
   dplyr::summarise(Abundance = sum(Abundance, na.rm = T)) %>%
   dplyr::ungroup() %>%
   # Remove rows without a genus-level ID / those with abundance of 0
-  filter(!is.na(Genus) & Abundance > 0)
+  dplyr::filter(!is.na(Genus) & Abundance > 0) %>%
+  # Also want relative abundance
+  dplyr::group_by(Sample.ID) %>%
+  dplyr::mutate(totalAbun = sum(Abundance, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  # Calculate relative abundance
+  dplyr::mutate(relativeAbun = (Abundance / totalAbun) * 100)
 
 # Check that out
 dplyr::glimpse(gen_abun)
