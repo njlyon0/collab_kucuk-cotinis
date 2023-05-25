@@ -88,7 +88,7 @@ total_summary <- simp_reads %>%
   dplyr::left_join(y = simp_df,
                    by = c("Sample.ID", "Lifestage", "Gut.Region", "Stage.Gut", "Sex")) %>%
   # Rename the read count column
-  dplyr::rename(asv_ct = read_ct) %>%
+  dplyr::rename(species_ct = read_ct) %>%
   # Re-arrange so 'all samples' is on top
   dplyr::arrange(Sample.ID)
 
