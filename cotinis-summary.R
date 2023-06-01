@@ -49,7 +49,7 @@ simp_df <- fams %>%
 dplyr::glimpse(simp_df)
 
 ## -------------------------------------------- ##
-            # Summarize Reads ####
+            # Summarize ASVs ####
 ## -------------------------------------------- ##
 
 # Rotate the beta diversity table to long format
@@ -63,32 +63,32 @@ beta_long <- beta %>%
 # Check structure of new dataframe
 dplyr::glimpse(beta_long)
 
-# Identify the total unique read IDs
-total_reads <- data.frame(Sample.ID = "All Samples",
-                          read_ct = length(unique(beta_long$identity)))
+# Identify the total unique ASV IDs (essentially 'species')
+total_asvs <- data.frame(Sample.ID = "All Samples",
+                          asv_ct = length(unique(beta_long$identity)))
 
-# Identify unique reads per sample
-simp_reads <- beta_long %>%
+# Identify unique ASVs per sample
+simp_asvs <- beta_long %>%
   dplyr::group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex) %>%
-  dplyr::summarize(read_ct = length(unique(identity))) %>%
+  dplyr::summarize(asv_ct = length(unique(identity))) %>%
   dplyr::ungroup() %>%
-  # Attach the total read count dataframe (across samples)
-  dplyr::bind_rows(y = total_reads)
+  # Attach the total ASV count dataframe (across samples)
+  dplyr::bind_rows(y = total_asvs)
 
 # Check structure
-dplyr::glimpse(simp_reads)
+dplyr::glimpse(simp_asvs)
 
 ## -------------------------------------------- ##
 # Combine Summaries ####
 ## -------------------------------------------- ##
 
 # Need to combine these into one object
-total_summary <- simp_reads %>%
-  # Left join on the read count
+total_summary <- simp_asvs %>%
+  # Left join on the ASV count
   dplyr::left_join(y = simp_df,
                    by = c("Sample.ID", "Lifestage", "Gut.Region", "Stage.Gut", "Sex")) %>%
-  # Rename the read count column
-  dplyr::rename(species_ct = read_ct) %>%
+  # Rename the ASV count column
+  dplyr::rename(species_ct = asv_ct) %>%
   # Re-arrange so 'all samples' is on top
   dplyr::arrange(Sample.ID)
 
