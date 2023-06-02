@@ -162,7 +162,9 @@ total_summary <- reads_actual %>%
   # Left join on species (i.e., ASVs)
   dplyr::left_join(y = asvs_actual, c("Sample.ID", "Lifestage", "Gut.Region", "Stage.Gut", "Sex")) %>%
   # Move sample info to the left
-  dplyr::relocate(Lifestage:Sex, .after = Sample.ID)
+  dplyr::relocate(Lifestage:Sex, .after = Sample.ID) %>%
+  # Drop Lmid19 (included in reads but not other data)
+  dplyr::filter(Sample.ID != "Lmid19")
 
 # Check structure
 dplyr::glimpse(total_summary)
