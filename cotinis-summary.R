@@ -38,7 +38,7 @@ dplyr::glimpse(reads_jofi)
 dplyr::glimpse(reads_deno)
 
 # Combine the join and join + filter dataframes
-reads_jojofi <- reads_join %>%
+reads_by_sample <- reads_join %>%
   dplyr::left_join(y = reads_jofi, by = "files") %>%
   # Make both columns truly numeric
   dplyr::mutate(join_read_sum = as.numeric(join_size),
@@ -55,23 +55,23 @@ reads_jojofi <- reads_join %>%
   dplyr::select(Sample.ID, join_read_sum, joinfilter_read_sum)
 
 # Re-check structure
-dplyr::glimpse(reads_jojofi)
+dplyr::glimpse(reads_by_sample)
 
 # Identify number of reads globally
 total_reads <- data.frame(Sample.ID = "All Samples",
-                          join_read_sum = sum(reads_jojofi$join_read_sum, na.rm = T),
-                          joinfilter_read_sum = sum(reads_jojofi$joinfilter_read_sum, na.rm = T),
+                          join_read_sum = sum(reads_by_sample$join_read_sum, na.rm = T),
+                          joinfilter_read_sum = sum(reads_by_sample$joinfilter_read_sum, na.rm = T),
                           denoised_read_ct = length(unique(reads_deno$x)))
 
 # Check that out
 total_reads
 
 # Combine these into one data object
-reads_df <- total_reads %>%
-  dplyr::bind_rows(y = reads_jojofi)
+reads_actual <- total_reads %>%
+  dplyr::bind_rows(y = reads_by_sample)
 
 # Check structure
-dplyr::glimpse(reads_df)
+dplyr::glimpse(reads_actual)
 
 ## -------------------------------------------- ##
           # Summarize Family/Phyla ####
@@ -82,34 +82,42 @@ fams <- read.csv(file.path("data", "tidy_data", "family-abun.csv"))
 # Check structure
 dplyr::glimpse(fams)
 
-# Identify total number of families/phyla (across samples)
-total_smry <- data.frame(Sample.ID = "All Samples",
-                         family_ct = length(unique(fams$Family)),
-                         phylum_ct = length(unique(fams$Phylum)))
-
 # Identify number of families & phyla per sample
-simp_df <- fams %>%
+fams_by_sample <- fams %>%
   dplyr::group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex) %>%
   dplyr::summarize(family_ct = length(unique(Family)),
                    phylum_ct = length(unique(Phylum))) %>%
-  dplyr::ungroup() %>%
-  # Bind on the total information too
-  dplyr::bind_rows(y = total_smry)
+  dplyr::ungroup()
 
 # Check that out
-dplyr::glimpse(simp_df)
+dplyr::glimpse(fams_by_sample)
+
+# Identify total number of families/phyla (across samples)
+total_fams <- data.frame(Sample.ID = "All Samples",
+                         family_ct = length(unique(fams$Family)),
+                         phylum_ct = length(unique(fams$Phylum)))
+
+# Check it out
+total_fams
+
+# Combine these
+fams_actual <- total_fams %>%
+  dplyr::bind_rows(y = fams_by_sample)
+
+# Re-check structure
+dplyr::glimpse(fams_actual)
 
 ## -------------------------------------------- ##
             # Summarize ASVs ####
 ## -------------------------------------------- ##
 # Retrieve the ASVs info (basically 'species' for our purposes)
-beta <- read.csv(file.path("data", "tidy_data", "beta-diversity-data.csv"))
+spp <- read.csv(file.path("data", "tidy_data", "beta-diversity-data.csv"))
 
 # Look at structure
-dplyr::glimpse(beta)
+dplyr::glimpse(spp)
 
 # Rotate the beta diversity table to long format
-beta_long <- beta %>%
+spp_long <- spp %>%
   tidyr::pivot_longer(cols = -Sample.ID:-Sex,
                       names_to = "identity",
                       values_to = "count") %>%
@@ -117,36 +125,44 @@ beta_long <- beta %>%
   dplyr::filter(count > 0)
 
 # Check structure of new dataframe
-dplyr::glimpse(beta_long)
+dplyr::glimpse(spp_long)
+
+# Identify unique ASVs per sample
+asvs_by_sample <- spp_long %>%
+  dplyr::group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex) %>%
+  dplyr::summarize(asv_ct = length(unique(identity))) %>%
+  dplyr::ungroup()
+
+# Glimpse
+dplyr::glimpse(asvs_by_sample)
 
 # Identify the total unique ASV IDs (essentially 'species')
 total_asvs <- data.frame(Sample.ID = "All Samples",
-                          asv_ct = length(unique(beta_long$identity)))
+                          asv_ct = length(unique(spp_long$identity)))
 
-# Identify unique ASVs per sample
-simp_asvs <- beta_long %>%
-  dplyr::group_by(Sample.ID, Lifestage, Gut.Region, Stage.Gut, Sex) %>%
-  dplyr::summarize(asv_ct = length(unique(identity))) %>%
-  dplyr::ungroup() %>%
-  # Attach the total ASV count dataframe (across samples)
-  dplyr::bind_rows(y = total_asvs)
+# Look at it
+total_asvs
+
+# Combine the two
+asvs_actual <- total_asvs %>%
+  dplyr::bind_rows(asvs_by_sample) %>%
+  # Rename ASV column
+  dplyr::rename(species_ct = asv_ct)
 
 # Check structure
-dplyr::glimpse(simp_asvs)
+dplyr::glimpse(asvs_actual)
 
 ## -------------------------------------------- ##
-# Combine Summaries ####
+          # Combine Summaries ####
 ## -------------------------------------------- ##
-
 # Need to combine these into one object
-total_summary <- simp_asvs %>%
-  # Left join on the ASV count
-  dplyr::left_join(y = simp_df,
-                   by = c("Sample.ID", "Lifestage", "Gut.Region", "Stage.Gut", "Sex")) %>%
-  # Rename the ASV count column
-  dplyr::rename(species_ct = asv_ct) %>%
-  # Re-arrange so 'all samples' is on top
-  dplyr::arrange(Sample.ID)
+total_summary <- reads_actual %>%
+  # Left join on family information
+  dplyr::left_join(y = fams_actual, by = c("Sample.ID")) %>%
+  # Left join on species (i.e., ASVs)
+  dplyr::left_join(y = asvs_actual, c("Sample.ID", "Lifestage", "Gut.Region", "Stage.Gut", "Sex")) %>%
+  # Move sample info to the left
+  dplyr::relocate(Lifestage:Sex, .after = Sample.ID)
 
 # Check structure
 dplyr::glimpse(total_summary)
