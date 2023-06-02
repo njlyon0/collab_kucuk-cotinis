@@ -17,25 +17,34 @@ rm(list = ls())
 dir.create(path = file.path("summary"), showWarnings = F)
 
 ## -------------------------------------------- ##
-      # Data Retrieval & Housekeeping ####
+# Summarize Reads ####
 ## -------------------------------------------- ##
+
 # Read in the denoised reads QZA file
-reads_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "rep-seqs.qza"))
+# reads_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "rep-seqs.qza"))
+reads_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "reads-joined.qza"))
 
 # Strip out the dataframe portion
 reads <- as.data.frame(reads_qza$data)
 
-# Retrieve the other relevant datasets
-beta <- read.csv(file.path("data", "tidy_data", "beta-diversity-data.csv"))
-fams <- read.csv(file.path("data", "tidy_data", "family-abun.csv"))
+# Check structure
+dplyr::glimpse(reads)
 
-# Look at them to get familiar with structure
-dplyr::glimpse(beta)
-dplyr::glimpse(fams)
+# Identify number of reads globally
+total_reads <- data.frame(Sample.ID = "All Samples",
+                         read_ct = length(unique(reads$x)))
+
+# Check that out
+total_reads
 
 ## -------------------------------------------- ##
           # Summarize Family/Phyla ####
 ## -------------------------------------------- ##
+# Read in family/phyla information
+fams <- read.csv(file.path("data", "tidy_data", "family-abun.csv"))
+
+# Check structure
+dplyr::glimpse(fams)
 
 # Identify total number of families/phyla (across samples)
 total_smry <- data.frame(Sample.ID = "All Samples",
@@ -57,6 +66,11 @@ dplyr::glimpse(simp_df)
 ## -------------------------------------------- ##
             # Summarize ASVs ####
 ## -------------------------------------------- ##
+# Retrieve the ASVs info (basically 'species' for our purposes)
+beta <- read.csv(file.path("data", "tidy_data", "beta-diversity-data.csv"))
+
+# Look at structure
+dplyr::glimpse(beta)
 
 # Rotate the beta diversity table to long format
 beta_long <- beta %>%
