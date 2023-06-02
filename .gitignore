@@ -44,6 +44,10 @@ vignettes/*.pdf
 # R project file
 *.Rproj
 
+# Huge data files
+reads-joined.qza
+## reads-joined.qza = 28.8 MB
+
 # Visualization folders
 Graphs/
 graphs/
