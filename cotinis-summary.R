@@ -8,7 +8,7 @@
 
 # Necessary libraries
 # install.packages("librarian")
-librarian::shelf(tidyverse, supportR)
+librarian::shelf(tidyverse, supportR, jbisanz/qiime2R)
 
 # Clear environment (always better to start with tabula rasa)
 rm(list = ls())
@@ -19,7 +19,13 @@ dir.create(path = file.path("summary"), showWarnings = F)
 ## -------------------------------------------- ##
       # Data Retrieval & Housekeeping ####
 ## -------------------------------------------- ##
-# Retrieve the relevant datasets
+# Read in the denoised reads QZA file
+reads_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "rep-seqs.qza"))
+
+# Strip out the dataframe portion
+reads <- as.data.frame(reads_qza$data)
+
+# Retrieve the other relevant datasets
 beta <- read.csv(file.path("data", "tidy_data", "beta-diversity-data.csv"))
 fams <- read.csv(file.path("data", "tidy_data", "family-abun.csv"))
 
