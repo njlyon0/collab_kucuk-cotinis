@@ -19,23 +19,59 @@ dir.create(path = file.path("summary"), showWarnings = F)
 ## -------------------------------------------- ##
 # Summarize Reads ####
 ## -------------------------------------------- ##
+# Read in the joined, joined + filtered, and denoised reads QZA files
+reads_join_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "reads-joined.qza"))
+reads_jofi_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "reads-joined-filtered.qza"))
+reads_deno_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "rep-seqs.qza"))
 
-# Read in the denoised reads QZA file
-# reads_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "rep-seqs.qza"))
-reads_qza <- qiime2R::read_qza(file = file.path("data", "raw_data", "reads-joined.qza"))
-
-# Strip out the dataframe portion
-reads <- as.data.frame(reads_qza$data)
+# Strip out the dataframe portion of each
+reads_join <- as.data.frame(reads_join_qza$data) %>%
+  # Rename a column
+  dplyr::rename(join_size = size)
+reads_jofi <- as.data.frame(reads_jofi_qza$data) %>%
+  dplyr::rename(jofi_size = size)
+reads_deno <- as.data.frame(reads_deno_qza$data)
 
 # Check structure
-dplyr::glimpse(reads)
+dplyr::glimpse(reads_join)
+dplyr::glimpse(reads_jofi)
+dplyr::glimpse(reads_deno)
+
+# Combine the join and join + filter dataframes
+reads_jojofi <- reads_join %>%
+  dplyr::left_join(y = reads_jofi, by = "files") %>%
+  # Make both columns truly numeric
+  dplyr::mutate(join_read_sum = as.numeric(join_size),
+                joinfilter_read_sum = as.numeric(jofi_size)) %>%
+  # Drop data from unfed individuals
+  dplyr::filter(stringr::str_sub(string = files, start = 1, end = 5) != "Unfed") %>%
+  # Pare down the files column into just sample ID
+  dplyr::mutate(Sample.ID = gsub(pattern = "_[[:digit:]]{1,2}_L001_R1_001.fastq.gz",
+                                 replacement = "", x = files),
+                .before = dplyr::everything()) %>%
+  # Drop unwanted non-sample information too
+  dplyr::filter(!Sample.ID %in% c("MANIFEST", "metadata.yml")) %>%
+  # Pare down to only desired columns
+  dplyr::select(Sample.ID, join_read_sum, joinfilter_read_sum)
+
+# Re-check structure
+dplyr::glimpse(reads_jojofi)
 
 # Identify number of reads globally
 total_reads <- data.frame(Sample.ID = "All Samples",
-                         read_ct = length(unique(reads$x)))
+                          join_read_sum = sum(reads_jojofi$join_read_sum, na.rm = T),
+                          joinfilter_read_sum = sum(reads_jojofi$joinfilter_read_sum, na.rm = T),
+                          denoised_read_ct = length(unique(reads_deno$x)))
 
 # Check that out
 total_reads
+
+# Combine these into one data object
+reads_df <- total_reads %>%
+  dplyr::bind_rows(y = reads_jojofi)
+
+# Check structure
+dplyr::glimpse(reads_df)
 
 ## -------------------------------------------- ##
           # Summarize Family/Phyla ####
