@@ -2,7 +2,7 @@
 
 ###  [Roy A. Kucuk](https://loop.frontiersin.org/people/2225816/overview), [Barbara J. Campbell](https://loop.frontiersin.org/people/21446/overview), [Nicholas J. Lyon](https://njlyon0.github.io/), [Emily A. Shelby](https://loop.frontiersin.org/people/2243702/overview) and [Michael S. Caterino](https://sites.google.com/site/caterinolab/people/caterino)
 
-This repository contains all relevant code to the Kucuk et al. 2023 (link to be added post-publication) paper published in **Frontiers in Microbiology**
+This repository contains all code relevant to the [Kucuk et al. 2023](https://www.frontiersin.org/articles/10.3389/fmicb.2023.1185661/full) paper published in **Frontiers in Microbiology**
 
  - `cotinis-tidy.R` - Wrangles raw data (CSV & QZA) into analysis-ready format
 
